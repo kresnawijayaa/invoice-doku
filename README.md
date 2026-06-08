@@ -179,14 +179,14 @@ Status DOKU yang dipetakan:
 Deployment production disiapkan untuk Docker Compose dengan Caddy sebagai reverse proxy HTTPS otomatis untuk domain:
 
 ```txt
-kresnawijaya.web.id
+invoice.kresnawijaya.web.id
 ```
 
 File terkait:
 
 - `Dockerfile`
 - `docker-compose.prod.yml`
-- `Caddyfile`
+- `../caddy/Caddyfile` (reverse proxy Caddy existing)
 - `.env.production.example`
 - `docker-entrypoint.sh`
 
@@ -195,7 +195,7 @@ File terkait:
 Arahkan DNS `A record`:
 
 ```txt
-kresnawijaya.web.id -> IP_VPS
+invoice.kresnawijaya.web.id -> IP_VPS
 ```
 
 Pastikan port VPS terbuka:
@@ -250,10 +250,10 @@ DOKU_FAILED_REDIRECT_URL=https://invoice.domain.com/invoice/{token}/failed
 Untuk domain project ini:
 
 ```env
-NEXT_PUBLIC_APP_URL=https://kresnawijaya.web.id
-DOKU_CALLBACK_URL=https://kresnawijaya.web.id/api/webhooks/doku
-DOKU_SUCCESS_REDIRECT_URL=https://kresnawijaya.web.id/invoice/{token}/success
-DOKU_FAILED_REDIRECT_URL=https://kresnawijaya.web.id/invoice/{token}/failed
+NEXT_PUBLIC_APP_URL=https://invoice.kresnawijaya.web.id
+DOKU_CALLBACK_URL=https://invoice.kresnawijaya.web.id/api/webhooks/doku
+DOKU_SUCCESS_REDIRECT_URL=https://invoice.kresnawijaya.web.id/invoice/{token}/success
+DOKU_FAILED_REDIRECT_URL=https://invoice.kresnawijaya.web.id/invoice/{token}/failed
 ```
 
 ### Update Deploy
@@ -270,7 +270,7 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d --bui
 
 ```bash
 docker compose --env-file .env.production -f docker-compose.prod.yml logs -f app
-docker compose --env-file .env.production -f docker-compose.prod.yml logs -f caddy
+docker compose -f ../caddy/docker-compose.yml logs -f caddy
 ```
 
 ### Backup Database

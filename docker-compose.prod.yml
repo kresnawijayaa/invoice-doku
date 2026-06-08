@@ -34,6 +34,7 @@ services:
         condition: service_healthy
     networks:
       - invoice_network
+      - caddy
 
   postgres:
     image: postgres:16-alpine
@@ -53,28 +54,11 @@ services:
     networks:
       - invoice_network
 
-  caddy:
-    image: caddy:2-alpine
-    container_name: invoice-doku-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - app
-    networks:
-      - invoice_network
-
 networks:
   invoice_network:
     driver: bridge
+  caddy:
+    external: true
 
 volumes:
   postgres_data:
-  caddy_data:
-  caddy_config:
