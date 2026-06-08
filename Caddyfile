@@ -1,0 +1,4 @@
+kresnawijaya.web.id {
+	encode gzip zstd
+	reverse_proxy app:3000
+}

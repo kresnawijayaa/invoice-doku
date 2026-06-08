@@ -1,0 +1,80 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: invoice-doku-app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-invoice_doku}?schema=public
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      AUTH_SECRET: ${AUTH_SECRET}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-resend}
+      EMAIL_FROM: ${EMAIL_FROM}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      DOKU_CLIENT_ID: ${DOKU_CLIENT_ID}
+      DOKU_SECRET_KEY: ${DOKU_SECRET_KEY}
+      DOKU_ENV: ${DOKU_ENV:-production}
+      DOKU_CALLBACK_URL: ${DOKU_CALLBACK_URL}
+      DOKU_SUCCESS_REDIRECT_URL: ${DOKU_SUCCESS_REDIRECT_URL}
+      DOKU_FAILED_REDIRECT_URL: ${DOKU_FAILED_REDIRECT_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - invoice_network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: invoice-doku-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-invoice_doku}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-invoice_doku}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - invoice_network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: invoice-doku-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - invoice_network
+
+networks:
+  invoice_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

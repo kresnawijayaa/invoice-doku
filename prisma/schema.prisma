@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  UNPAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(ADMIN)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Client {
+  id          String    @id @default(cuid())
+  name        String
+  companyName String?   @map("company_name")
+  email       String
+  phone       String?
+  address     String?
+  invoices    Invoice[]
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("clients")
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  invoiceNumber  String        @unique @map("invoice_number")
+  clientId       String        @map("client_id")
+  client         Client        @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  title          String
+  notes          String?
+  issueDate      DateTime      @map("issue_date")
+  dueDate        DateTime      @map("due_date")
+  subtotal       Decimal       @default(0) @db.Decimal(14, 2)
+  taxAmount      Decimal       @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  discountAmount Decimal       @default(0) @map("discount_amount") @db.Decimal(14, 2)
+  totalAmount    Decimal       @default(0) @map("total_amount") @db.Decimal(14, 2)
+  status         InvoiceStatus @default(DRAFT)
+  publicToken    String        @unique @map("public_token")
+  sentAt         DateTime?     @map("sent_at")
+  paidAt         DateTime?     @map("paid_at")
+  items          InvoiceItem[]
+  payments       Payment[]
+  emailLogs      EmailLog[]
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String   @map("invoice_id")
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Decimal  @default(1) @db.Decimal(12, 2)
+  unitPrice   Decimal  @map("unit_price") @db.Decimal(14, 2)
+  totalPrice  Decimal  @map("total_price") @db.Decimal(14, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  invoiceId             String        @map("invoice_id")
+  invoice               Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  provider              String
+  providerTransactionId String?       @map("provider_transaction_id")
+  paymentUrl            String?       @map("payment_url")
+  paymentMethod         String?       @map("payment_method")
+  amount                Decimal       @db.Decimal(14, 2)
+  status                PaymentStatus @default(PENDING)
+  paidAt                DateTime?     @map("paid_at")
+  rawRequest            Json?         @map("raw_request")
+  rawCallback           Json?         @map("raw_callback")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  @@index([invoiceId])
+  @@index([providerTransactionId])
+  @@map("payments")
+}
+
+model EmailLog {
+  id               String      @id @default(cuid())
+  invoiceId        String      @map("invoice_id")
+  invoice          Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  recipientEmail   String      @map("recipient_email")
+  subject          String
+  status           EmailStatus @default(PENDING)
+  providerResponse Json?       @map("provider_response")
+  sentAt           DateTime?   @map("sent_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  @@index([invoiceId])
+  @@map("email_logs")
+}
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}

@@ -1,0 +1,78 @@
+type ClientFormProps = {
+  action: (formData: FormData) => void | Promise<void>;
+  client?: {
+    id: string;
+    name: string;
+    companyName: string | null;
+    email: string;
+    phone: string | null;
+    address: string | null;
+  };
+  submitLabel: string;
+};
+
+export function ClientForm({ action, client, submitLabel }: ClientFormProps) {
+  return (
+    <form action={action} className="rounded-lg border border-line bg-panel p-6 shadow-sm">
+      {client ? <input name="id" type="hidden" value={client.id} /> : null}
+      <div className="grid gap-5 md:grid-cols-2">
+        <label className="block">
+          <span className="text-sm font-medium text-ink">Nama Client</span>
+          <input
+            className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
+            name="name"
+            type="text"
+            defaultValue={client?.name}
+            placeholder="Tante Ririn"
+            required
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm font-medium text-ink">Perusahaan</span>
+          <input
+            className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
+            name="companyName"
+            type="text"
+            defaultValue={client?.companyName ?? ""}
+            placeholder="Jedeta Anugerah Logistik"
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm font-medium text-ink">Email</span>
+          <input
+            className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
+            name="email"
+            type="email"
+            defaultValue={client?.email}
+            placeholder="client@example.com"
+            required
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm font-medium text-ink">Telepon</span>
+          <input
+            className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
+            name="phone"
+            type="tel"
+            defaultValue={client?.phone ?? ""}
+            placeholder="+62..."
+          />
+        </label>
+        <label className="block md:col-span-2">
+          <span className="text-sm font-medium text-ink">Alamat</span>
+          <textarea
+            className="mt-2 min-h-28 w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-ink"
+            name="address"
+            defaultValue={client?.address ?? ""}
+            placeholder="Alamat penagihan"
+          />
+        </label>
+      </div>
+      <div className="mt-6 flex justify-end">
+        <button className="h-10 rounded-md bg-ink px-4 text-sm font-medium text-white" type="submit">
+          {submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+}
