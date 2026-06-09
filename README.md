@@ -113,6 +113,7 @@ Gunakan Resend:
 ```env
 EMAIL_PROVIDER=resend
 EMAIL_FROM="Invoice DOKU <invoice@domain.com>"
+EMAIL_SEND_PAYMENT_RECEIPT=false
 RESEND_API_KEY=...
 ```
 
@@ -121,12 +122,20 @@ Atau SMTP:
 ```env
 EMAIL_PROVIDER=smtp
 EMAIL_FROM="Invoice DOKU <invoice@domain.com>"
+EMAIL_SEND_PAYMENT_RECEIPT=false
 SMTP_HOST=smtp.domain.com
 SMTP_PORT=587
 SMTP_USER=...
 SMTP_PASSWORD=...
 SMTP_SECURE=false
 ```
+
+Rekomendasi agar client tidak menerima email ganda:
+
+- Biarkan sistem ini mengirim email invoice/tagihan awal.
+- Untuk email status pembayaran, pilih salah satu:
+  - gunakan email dari DOKU, biarkan `EMAIL_SEND_PAYMENT_RECEIPT=false`;
+  - atau nonaktifkan email pelanggan di DOKU Checkout Notification, lalu set `EMAIL_SEND_PAYMENT_RECEIPT=true`.
 
 ## DOKU Checkout
 

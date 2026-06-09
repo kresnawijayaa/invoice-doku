@@ -381,6 +381,10 @@ function parseDokuDate(value?: string) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function shouldSendPaymentReceiptEmail() {
+  return process.env.EMAIL_SEND_PAYMENT_RECEIPT === "true";
+}
+
 export async function handleDokuCallback(payload: DokuCallbackPayload) {
   const invoiceNumber = payload.order?.invoice_number;
   const dokuStatus = payload.transaction?.status;
@@ -428,7 +432,8 @@ export async function handleDokuCallback(payload: DokuCallbackPayload) {
   const paymentMethod = getPaymentMethod(payload);
   const providerTransactionId = payload.transaction?.original_request_id || latestPayment?.providerTransactionId || null;
   const rawCallback = payload as Prisma.InputJsonValue;
-  const shouldSendReceipt = paymentStatus === "PAID" && invoice.status !== "PAID" && invoice.emailLogs.length === 0;
+  const shouldSendReceipt =
+    shouldSendPaymentReceiptEmail() && paymentStatus === "PAID" && invoice.status !== "PAID" && invoice.emailLogs.length === 0;
 
   await prisma.$transaction(async (tx) => {
     if (latestPayment) {
