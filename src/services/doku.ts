@@ -3,6 +3,7 @@ import "server-only";
 import crypto from "crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { sendPaymentReceiptEmail } from "@/services/email";
 
 const CHECKOUT_TARGET = "/checkout/v1/payment";
 const WEBHOOK_TARGET = "/api/webhooks/doku";
@@ -395,6 +396,16 @@ export async function handleDokuCallback(payload: DokuCallbackPayload) {
   const invoice = await prisma.invoice.findUnique({
     where: { invoiceNumber },
     include: {
+      client: true,
+      emailLogs: {
+        where: {
+          status: "SENT",
+          subject: {
+            startsWith: "Pembayaran Diterima"
+          }
+        },
+        take: 1
+      },
       payments: {
         where: {
           provider: "DOKU"
@@ -417,6 +428,7 @@ export async function handleDokuCallback(payload: DokuCallbackPayload) {
   const paymentMethod = getPaymentMethod(payload);
   const providerTransactionId = payload.transaction?.original_request_id || latestPayment?.providerTransactionId || null;
   const rawCallback = payload as Prisma.InputJsonValue;
+  const shouldSendReceipt = paymentStatus === "PAID" && invoice.status !== "PAID" && invoice.emailLogs.length === 0;
 
   await prisma.$transaction(async (tx) => {
     if (latestPayment) {
@@ -469,6 +481,51 @@ export async function handleDokuCallback(payload: DokuCallbackPayload) {
       });
     }
   });
+
+  if (shouldSendReceipt && paidAt) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const publicUrl = `${appUrl}/invoice/${invoice.publicToken}`;
+    const subject = `Pembayaran Diterima - Invoice ${invoice.invoiceNumber}`;
+
+    try {
+      const result = await sendPaymentReceiptEmail({
+        recipientEmail: invoice.client.email,
+        clientName: invoice.client.name,
+        companyName: invoice.client.companyName,
+        invoiceNumber: invoice.invoiceNumber,
+        invoiceTitle: invoice.title,
+        totalAmount: invoice.totalAmount.toString(),
+        paidAt,
+        paymentMethod,
+        publicUrl
+      });
+
+      await prisma.emailLog.create({
+        data: {
+          invoiceId: invoice.id,
+          recipientEmail: invoice.client.email,
+          subject: result.subject,
+          status: "SENT",
+          providerResponse: result.response,
+          sentAt: new Date()
+        }
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Email receipt gagal dikirim.";
+
+      await prisma.emailLog.create({
+        data: {
+          invoiceId: invoice.id,
+          recipientEmail: invoice.client.email,
+          subject,
+          status: "FAILED",
+          providerResponse: {
+            error: message
+          }
+        }
+      });
+    }
+  }
 
   return {
     invoiceId: invoice.id,

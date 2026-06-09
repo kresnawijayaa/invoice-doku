@@ -51,6 +51,11 @@ export default async function InvoiceDetailPage({
             <p className="mt-2 text-sm text-muted">{invoice.title}</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {invoice.status !== "PAID" ? (
+              <Link className="inline-flex h-10 items-center rounded-md border border-line bg-white px-3 text-sm font-medium text-ink" href={`/invoices/${invoice.id}/edit`}>
+                Edit Invoice
+              </Link>
+            ) : null}
             <form action={sendInvoiceAction}>
               <input name="id" type="hidden" value={invoice.id} />
               <button className="h-10 rounded-md bg-ink px-3 text-sm font-medium text-white" type="submit">
@@ -92,6 +97,11 @@ export default async function InvoiceDetailPage({
         {query?.success === "email" ? (
           <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
             Invoice berhasil dikirim ke {invoice.client.email}.
+          </div>
+        ) : null}
+        {query?.success === "updated" ? (
+          <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            Invoice berhasil diperbarui.
           </div>
         ) : null}
         {query?.error ? (
@@ -170,6 +180,12 @@ export default async function InvoiceDetailPage({
               <p className="mt-2 break-all text-sm text-muted">{publicUrl}</p>
               <Link className="mt-4 inline-flex h-10 items-center rounded-md bg-ink px-4 text-sm font-medium text-white" href={`/invoice/${invoice.publicToken}`}>
                 Buka Invoice
+              </Link>
+              <Link
+                className="ml-2 mt-4 inline-flex h-10 items-center rounded-md border border-line bg-white px-4 text-sm font-medium text-ink"
+                href={`/invoice/${invoice.publicToken}/pdf`}
+              >
+                Download PDF
               </Link>
             </section>
 

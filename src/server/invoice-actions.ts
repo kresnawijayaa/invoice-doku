@@ -58,7 +58,7 @@ async function generateInvoiceNumber(clientId: string, issueDate: Date) {
   return `${prefix}-${String(count + 1).padStart(3, "0")}`;
 }
 
-function parseItems(formData: FormData) {
+function parseItems(formData: FormData, errorPath: string) {
   const descriptions = formData.getAll("itemDescription").map(String);
   const quantities = formData.getAll("itemQuantity").map(Number);
   const unitPrices = formData.getAll("itemUnitPrice").map(Number);
@@ -72,12 +72,12 @@ function parseItems(formData: FormData) {
     .filter((item) => item.description);
 
   if (items.length === 0) {
-    redirect(`/invoices/create?error=${encodeURIComponent("Minimal satu item invoice wajib diisi.")}`);
+    redirect(`${errorPath}?error=${encodeURIComponent("Minimal satu item invoice wajib diisi.")}`);
   }
 
   for (const item of items) {
     if (!Number.isFinite(item.quantity) || item.quantity <= 0 || !Number.isFinite(item.unitPrice) || item.unitPrice < 0) {
-      redirect(`/invoices/create?error=${encodeURIComponent("Qty dan harga item harus valid.")}`);
+      redirect(`${errorPath}?error=${encodeURIComponent("Qty dan harga item harus valid.")}`);
     }
   }
 
@@ -103,7 +103,7 @@ export async function createInvoiceAction(formData: FormData) {
     redirect(`/invoices/create?error=${encodeURIComponent(message)}`);
   }
 
-  const items = parseItems(formData);
+  const items = parseItems(formData, "/invoices/create");
   const issueDate = new Date(parsed.data.issueDate);
   const dueDate = new Date(parsed.data.dueDate);
   const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
@@ -144,6 +144,90 @@ export async function createInvoiceAction(formData: FormData) {
 
   revalidatePath("/invoices");
   redirect(`/invoices/${invoice.id}?success=created`);
+}
+
+export async function updateInvoiceAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+
+  if (!id) {
+    redirect("/invoices?error=Invoice tidak ditemukan.");
+  }
+
+  const errorPath = `/invoices/${id}/edit`;
+  const existingInvoice = await prisma.invoice.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      status: true
+    }
+  });
+
+  if (!existingInvoice) {
+    redirect("/invoices?error=Invoice tidak ditemukan.");
+  }
+
+  if (existingInvoice.status === "PAID") {
+    redirect(`/invoices/${id}?error=${encodeURIComponent("Invoice yang sudah PAID tidak bisa diedit.")}`);
+  }
+
+  const parsed = invoiceSchema.safeParse({
+    clientId: formData.get("clientId"),
+    title: formData.get("title"),
+    issueDate: formData.get("issueDate"),
+    dueDate: formData.get("dueDate"),
+    notes: formData.get("notes"),
+    taxAmount: formData.get("taxAmount") || 0,
+    discountAmount: formData.get("discountAmount") || 0
+  });
+
+  if (!parsed.success) {
+    const message = parsed.error.issues[0]?.message ?? "Input invoice tidak valid.";
+    redirect(`${errorPath}?error=${encodeURIComponent(message)}`);
+  }
+
+  const items = parseItems(formData, errorPath);
+  const issueDate = new Date(parsed.data.issueDate);
+  const dueDate = new Date(parsed.data.dueDate);
+  const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+  const totalAmount = subtotal + parsed.data.taxAmount - parsed.data.discountAmount;
+
+  if (totalAmount < 0) {
+    redirect(`${errorPath}?error=${encodeURIComponent("Total invoice tidak boleh negatif.")}`);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.invoiceItem.deleteMany({
+      where: { invoiceId: id }
+    });
+
+    await tx.invoice.update({
+      where: { id },
+      data: {
+        clientId: parsed.data.clientId,
+        title: parsed.data.title,
+        notes: parsed.data.notes || null,
+        issueDate,
+        dueDate,
+        subtotal,
+        taxAmount: parsed.data.taxAmount,
+        discountAmount: parsed.data.discountAmount,
+        totalAmount,
+        items: {
+          create: items.map((item) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice
+          }))
+        }
+      }
+    });
+  });
+
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath(`/invoices/${id}/edit`);
+  redirect(`/invoices/${id}?success=updated`);
 }
 
 export async function updateInvoiceStatusAction(formData: FormData) {
@@ -192,7 +276,10 @@ export async function sendInvoiceAction(formData: FormData) {
   const invoice = await prisma.invoice.findUnique({
     where: { id },
     include: {
-      client: true
+      client: true,
+      items: {
+        orderBy: { createdAt: "asc" }
+      }
     }
   });
 
@@ -211,9 +298,20 @@ export async function sendInvoiceAction(formData: FormData) {
       companyName: invoice.client.companyName,
       invoiceNumber: invoice.invoiceNumber,
       invoiceTitle: invoice.title,
+      status: invoice.status,
+      issueDate: invoice.issueDate,
       totalAmount: invoice.totalAmount.toString(),
+      subtotal: invoice.subtotal.toString(),
+      taxAmount: invoice.taxAmount.toString(),
+      discountAmount: invoice.discountAmount.toString(),
       dueDate: invoice.dueDate,
-      publicUrl
+      publicUrl,
+      items: invoice.items.map((item) => ({
+        description: item.description,
+        quantity: item.quantity.toString(),
+        unitPrice: item.unitPrice.toString(),
+        totalPrice: item.totalPrice.toString()
+      }))
     });
 
     await prisma.$transaction([

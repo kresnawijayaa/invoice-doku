@@ -10,6 +10,23 @@ type InvoiceFormProps = {
     name: string;
     companyName: string | null;
   }>;
+  invoice?: {
+    id: string;
+    clientId: string;
+    title: string;
+    issueDate: Date;
+    dueDate: Date;
+    notes: string | null;
+    taxAmount: string;
+    discountAmount: string;
+    items: Array<{
+      id: string;
+      description: string;
+      quantity: string;
+      unitPrice: string;
+    }>;
+  };
+  submitLabel?: string;
 };
 
 type DraftItem = {
@@ -28,8 +45,11 @@ function createEmptyItem(): DraftItem {
   };
 }
 
-export function InvoiceForm({ action, clients }: InvoiceFormProps) {
-  const [items, setItems] = useState<DraftItem[]>([
+function formatDateInput(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+const defaultItems: DraftItem[] = [
     {
       id: crypto.randomUUID(),
       description: "VPS Biznet 2vCPU/4GB/80GB",
@@ -54,7 +74,19 @@ export function InvoiceForm({ action, clients }: InvoiceFormProps) {
       quantity: "1",
       unitPrice: "100000"
     }
-  ]);
+  ];
+
+export function InvoiceForm({ action, clients, invoice, submitLabel = "Simpan Invoice" }: InvoiceFormProps) {
+  const [items, setItems] = useState<DraftItem[]>(
+    invoice
+      ? invoice.items.map((item) => ({
+          id: item.id,
+          description: item.description,
+          quantity: item.quantity.toString(),
+          unitPrice: item.unitPrice.toString()
+        }))
+      : defaultItems
+  );
 
   const total = items.reduce((sum, item) => {
     const quantity = Number(item.quantity) || 0;
@@ -72,6 +104,7 @@ export function InvoiceForm({ action, clients }: InvoiceFormProps) {
 
   return (
     <form action={action} className="space-y-6">
+      {invoice ? <input name="id" type="hidden" value={invoice.id} /> : null}
       <section className="rounded-lg border border-line bg-panel p-6 shadow-sm">
         <div className="grid gap-5 md:grid-cols-2">
           <label className="block">
@@ -79,6 +112,7 @@ export function InvoiceForm({ action, clients }: InvoiceFormProps) {
             <select
               className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
               name="clientId"
+              defaultValue={invoice?.clientId ?? ""}
               required
             >
               <option value="">Pilih client</option>
@@ -95,6 +129,7 @@ export function InvoiceForm({ action, clients }: InvoiceFormProps) {
               className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
               name="dueDate"
               type="date"
+              defaultValue={invoice ? formatDateInput(invoice.dueDate) : ""}
               required
             />
           </label>
@@ -104,7 +139,7 @@ export function InvoiceForm({ action, clients }: InvoiceFormProps) {
               className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
               name="title"
               type="text"
-              defaultValue="Tagihan Operasional LMS Jedeta - Juni 2026"
+              defaultValue={invoice?.title ?? "Tagihan Operasional LMS Jedeta - Juni 2026"}
               required
             />
           </label>
@@ -114,6 +149,7 @@ export function InvoiceForm({ action, clients }: InvoiceFormProps) {
               className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
               name="issueDate"
               type="date"
+              defaultValue={invoice ? formatDateInput(invoice.issueDate) : ""}
               required
             />
           </label>
@@ -125,7 +161,7 @@ export function InvoiceForm({ action, clients }: InvoiceFormProps) {
               type="number"
               min="0"
               step="1"
-              defaultValue="0"
+              defaultValue={invoice?.discountAmount.toString() ?? "0"}
             />
           </label>
           <label className="block">
@@ -136,7 +172,7 @@ export function InvoiceForm({ action, clients }: InvoiceFormProps) {
               type="number"
               min="0"
               step="1"
-              defaultValue="0"
+              defaultValue={invoice?.taxAmount.toString() ?? "0"}
             />
           </label>
           <label className="block md:col-span-2">
@@ -144,6 +180,7 @@ export function InvoiceForm({ action, clients }: InvoiceFormProps) {
             <textarea
               className="mt-2 min-h-24 w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-ink"
               name="notes"
+              defaultValue={invoice?.notes ?? ""}
               placeholder="Catatan tambahan untuk client"
             />
           </label>
@@ -227,7 +264,7 @@ export function InvoiceForm({ action, clients }: InvoiceFormProps) {
 
       <div className="flex justify-end">
         <button className="h-10 rounded-md bg-ink px-4 text-sm font-medium text-white" type="submit">
-          Simpan Invoice
+          {submitLabel}
         </button>
       </div>
     </form>

@@ -1,25 +1,69 @@
 import Link from "next/link";
+import { InvoiceStatus, Prisma } from "@prisma/client";
 import { StatusBadge } from "@/components/status-badge";
+import { Pagination } from "@/components/pagination";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { createPageHref, getPage, getTotalPages, PAGE_SIZE } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
+
+const invoiceStatuses: InvoiceStatus[] = ["DRAFT", "SENT", "UNPAID", "PAID", "OVERDUE", "CANCELLED"];
+const sortOptions = {
+  latest: { label: "Terbaru", orderBy: { createdAt: "desc" } },
+  due_asc: { label: "Due terdekat", orderBy: { dueDate: "asc" } },
+  due_desc: { label: "Due terjauh", orderBy: { dueDate: "desc" } },
+  total_desc: { label: "Total terbesar", orderBy: { totalAmount: "desc" } },
+  total_asc: { label: "Total terkecil", orderBy: { totalAmount: "asc" } }
+} satisfies Record<string, { label: string; orderBy: Prisma.InvoiceOrderByWithRelationInput }>;
+type SortKey = keyof typeof sortOptions;
 
 export default async function InvoicesPage({
   searchParams
 }: {
-  searchParams?: Promise<{ success?: string; error?: string }>;
+  searchParams?: Promise<{ success?: string; error?: string; q?: string; status?: string; sort?: string; page?: string }>;
 }) {
   const params = await searchParams;
-  const invoices = await prisma.invoice.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      client: {
-        select: {
-          name: true,
-          companyName: true
+  const query = params?.q?.trim() ?? "";
+  const selectedStatus = invoiceStatuses.includes(params?.status as InvoiceStatus) ? (params?.status as InvoiceStatus) : "";
+  const selectedSort: SortKey = params?.sort && params.sort in sortOptions ? (params.sort as SortKey) : "latest";
+  const page = getPage(params?.page);
+  const where: Prisma.InvoiceWhereInput = {
+    ...(selectedStatus ? { status: selectedStatus } : {}),
+    ...(query
+      ? {
+          OR: [
+            { invoiceNumber: { contains: query, mode: "insensitive" } },
+            { title: { contains: query, mode: "insensitive" } },
+            { client: { name: { contains: query, mode: "insensitive" } } },
+            { client: { companyName: { contains: query, mode: "insensitive" } } },
+            { client: { email: { contains: query, mode: "insensitive" } } }
+          ]
+        }
+      : {})
+  };
+  const [invoices, totalInvoices] = await Promise.all([
+    prisma.invoice.findMany({
+      where,
+      orderBy: sortOptions[selectedSort].orderBy,
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      include: {
+        client: {
+          select: {
+            name: true,
+            companyName: true
+          }
         }
       }
-    }
-  });
+    }),
+    prisma.invoice.count({ where })
+  ]);
+  const totalPages = getTotalPages(totalInvoices);
+  const currentPage = Math.min(page, totalPages);
+  const paginationParams = {
+    q: query || undefined,
+    status: selectedStatus || undefined,
+    sort: selectedSort === "latest" ? undefined : selectedSort
+  };
 
   return (
     <main className="p-6">
@@ -42,6 +86,55 @@ export default async function InvoicesPage({
         {params?.error ? (
           <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{params.error}</div>
         ) : null}
+
+        <form className="mb-4 grid gap-3 rounded-lg border border-line bg-panel p-4 shadow-sm md:grid-cols-[1fr_180px_180px_auto]">
+          <label className="block">
+            <span className="text-xs font-medium uppercase text-muted">Cari</span>
+            <input
+              className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
+              name="q"
+              placeholder="Nomor, judul, client, email"
+              defaultValue={query}
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium uppercase text-muted">Status</span>
+            <select
+              className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
+              name="status"
+              defaultValue={selectedStatus}
+            >
+              <option value="">Semua</option>
+              {invoiceStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium uppercase text-muted">Urutkan</span>
+            <select
+              className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
+              name="sort"
+              defaultValue={selectedSort}
+            >
+              {Object.entries(sortOptions).map(([value, option]) => (
+                <option key={value} value={value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex items-end gap-2">
+            <button className="h-10 rounded-md bg-ink px-4 text-sm font-medium text-white" type="submit">
+              Filter
+            </button>
+            <Link className="inline-flex h-10 items-center rounded-md border border-line bg-white px-4 text-sm font-medium text-ink" href="/invoices">
+              Reset
+            </Link>
+          </div>
+        </form>
 
         <div className="overflow-hidden rounded-lg border border-line bg-panel shadow-sm">
           <table className="w-full min-w-[900px] border-collapse text-left text-sm">
@@ -78,12 +171,18 @@ export default async function InvoicesPage({
               ) : (
                 <tr>
                   <td className="px-4 py-10 text-center text-muted" colSpan={7}>
-                    Belum ada invoice. Buat invoice pertama dari data client yang sudah ada.
+                    Tidak ada invoice yang cocok.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            previousHref={createPageHref("/invoices", paginationParams, Math.max(1, currentPage - 1))}
+            nextHref={createPageHref("/invoices", paginationParams, Math.min(totalPages, currentPage + 1))}
+          />
         </div>
       </section>
     </main>

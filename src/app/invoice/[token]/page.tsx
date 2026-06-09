@@ -60,6 +60,7 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
   }
 
   const canPay = ["SENT", "UNPAID", "OVERDUE"].includes(invoice.status);
+  const clientStatus = invoice.status === "PAID" ? "PAID" : "UNPAID";
 
   return (
     <main className="min-h-screen bg-gray-100 px-4 py-6 sm:px-6 lg:py-10">
@@ -71,7 +72,7 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{invoice.title}</p>
           </div>
           <div className="flex items-center gap-3">
-            <StatusBadge status={invoice.status} />
+            <StatusBadge status={clientStatus} />
             <span className="text-sm text-muted">Due {formatDate(invoice.dueDate)}</span>
           </div>
         </div>
@@ -158,12 +159,18 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
                   {invoice.status === "PAID" ? "Invoice ini sudah dibayar." : "Pembayaran untuk invoice ini tidak tersedia."}
                 </div>
               )}
+              <Link
+                className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink"
+                href={`/invoice/${token}/pdf`}
+              >
+                Download PDF
+              </Link>
             </section>
 
             <section className="rounded-lg border border-line bg-panel p-6 shadow-sm">
               <h2 className="text-base font-semibold text-ink">Informasi Pembayaran</h2>
               <p className="mt-2 text-sm leading-6 text-muted">
-                Tombol pembayaran akan mengarahkan ke instruksi pembayaran DOKU setelah integrasi payment gateway aktif.
+                Pembayaran diproses melalui DOKU. Setelah pembayaran berhasil, status invoice akan diperbarui otomatis.
               </p>
             </section>
           </aside>
