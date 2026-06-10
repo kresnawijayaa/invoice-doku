@@ -39,6 +39,14 @@ export default function EmailSettingsPage() {
               <dt className="text-muted">Receipt email</dt>
               <dd className="font-medium text-ink">{process.env.EMAIL_SEND_PAYMENT_RECEIPT === "true" ? "enabled" : "disabled"}</dd>
             </div>
+            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+              <dt className="text-muted">CC</dt>
+              <dd className="font-medium text-ink">{process.env.EMAIL_CC ? "enabled" : "disabled"}</dd>
+            </div>
+            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+              <dt className="text-muted">BCC</dt>
+              <dd className="font-medium text-ink">{process.env.EMAIL_BCC ? "enabled" : "disabled"}</dd>
+            </div>
           </dl>
         </section>
 

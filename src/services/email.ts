@@ -54,6 +54,20 @@ function getEmailFrom() {
   return from;
 }
 
+function parseEmailList(value: string | undefined) {
+  return value
+    ?.split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+}
+
+function getEmailCopyRecipients() {
+  return {
+    cc: parseEmailList(process.env.EMAIL_CC),
+    bcc: parseEmailList(process.env.EMAIL_BCC)
+  };
+}
+
 function renderTextEmail(input: InvoiceEmailInput) {
   const clientStatus = input.status === "PAID" ? "PAID" : "UNPAID";
   const itemLines = input.items.map(
@@ -199,9 +213,12 @@ async function sendWithResend(input: InvoiceEmailInput, subject: string): Promis
   }
 
   const resend = new Resend(apiKey);
+  const copyRecipients = getEmailCopyRecipients();
   const result = await resend.emails.send({
     from: getEmailFrom(),
     to: input.recipientEmail,
+    cc: copyRecipients.cc,
+    bcc: copyRecipients.bcc,
     subject,
     text: renderTextEmail(input),
     html: renderHtmlEmail(input)
@@ -284,9 +301,12 @@ async function sendReceiptWithResend(input: PaymentReceiptEmailInput, subject: s
   }
 
   const resend = new Resend(apiKey);
+  const copyRecipients = getEmailCopyRecipients();
   const result = await resend.emails.send({
     from: getEmailFrom(),
     to: input.recipientEmail,
+    cc: copyRecipients.cc,
+    bcc: copyRecipients.bcc,
     subject,
     text: renderReceiptTextEmail(input),
     html: renderReceiptHtmlEmail(input)
@@ -325,10 +345,13 @@ async function sendReceiptWithSmtp(input: PaymentReceiptEmailInput, subject: str
       pass
     }
   });
+  const copyRecipients = getEmailCopyRecipients();
 
   const result = await transporter.sendMail({
     from: getEmailFrom(),
     to: input.recipientEmail,
+    cc: copyRecipients.cc,
+    bcc: copyRecipients.bcc,
     subject,
     text: renderReceiptTextEmail(input),
     html: renderReceiptHtmlEmail(input)
@@ -365,10 +388,13 @@ async function sendWithSmtp(input: InvoiceEmailInput, subject: string): Promise<
       pass
     }
   });
+  const copyRecipients = getEmailCopyRecipients();
 
   const result = await transporter.sendMail({
     from: getEmailFrom(),
     to: input.recipientEmail,
+    cc: copyRecipients.cc,
+    bcc: copyRecipients.bcc,
     subject,
     text: renderTextEmail(input),
     html: renderHtmlEmail(input)
