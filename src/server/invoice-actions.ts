@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { syncDokuPaymentStatus } from "@/services/doku";
 import { sendInvoiceEmail } from "@/services/email";
 
 const invoiceSchema = z.object({
@@ -355,4 +356,45 @@ export async function sendInvoiceAction(formData: FormData) {
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${invoice.id}`);
   redirect(`/invoices/${invoice.id}?success=email`);
+}
+
+export async function syncDokuPaymentStatusAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+
+  if (!id) {
+    redirect("/invoices?error=Invoice tidak ditemukan.");
+  }
+
+  try {
+    await syncDokuPaymentStatus(id);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Gagal sync status pembayaran DOKU.";
+
+    revalidatePath(`/invoices/${id}`);
+    redirect(`/invoices/${id}?error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/invoices");
+  revalidatePath(`/invoices/${id}`);
+  redirect(`/invoices/${id}?success=payment-sync`);
+}
+
+export async function markOverdueInvoicesAction() {
+  const result = await prisma.invoice.updateMany({
+    where: {
+      status: {
+        in: ["SENT", "UNPAID"]
+      },
+      dueDate: {
+        lt: new Date()
+      }
+    },
+    data: {
+      status: "OVERDUE"
+    }
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/invoices");
+  redirect(`/dashboard?success=overdue&count=${result.count}`);
 }

@@ -2,8 +2,14 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { markOverdueInvoicesAction } from "@/server/invoice-actions";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams
+}: {
+  searchParams?: Promise<{ success?: string; count?: string }>;
+}) {
+  const params = await searchParams;
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -64,10 +70,22 @@ export default async function DashboardPage() {
   return (
     <main className="px-4 py-5 sm:p-6">
       <section className="mx-auto max-w-6xl">
-        <div className="mb-6">
-          <p className="text-sm font-medium text-muted">Admin</p>
-          <h1 className="text-2xl font-semibold text-ink">Dashboard</h1>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-muted">Admin</p>
+            <h1 className="text-2xl font-semibold text-ink">Dashboard</h1>
+          </div>
+          <form action={markOverdueInvoicesAction}>
+            <button className="h-10 w-full rounded-md border border-line bg-white px-4 text-sm font-medium text-ink sm:w-auto" type="submit">
+              Cek Overdue
+            </button>
+          </form>
         </div>
+        {params?.success === "overdue" ? (
+          <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {params.count ?? 0} invoice overdue berhasil diperbarui.
+          </div>
+        ) : null}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map(([label, value]) => (
             <article key={label} className="rounded-lg border border-line bg-panel p-5 shadow-sm">

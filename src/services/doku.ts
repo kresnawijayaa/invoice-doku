@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { sendPaymentReceiptEmail } from "@/services/email";
 
 const CHECKOUT_TARGET = "/checkout/v1/payment";
+const STATUS_TARGET_PREFIX = "/orders/v1/status";
 const WEBHOOK_TARGET = "/api/webhooks/doku";
 
 type DokuInvoice = Prisma.InvoiceGetPayload<{
@@ -74,6 +75,18 @@ type DokuCallbackPayload = {
   [key: string]: unknown;
 };
 
+type DokuStatusResponse = DokuCallbackPayload & {
+  response?: {
+    error?: {
+      code?: string;
+      type?: string;
+      message?: string;
+    };
+  };
+  error_messages?: string[];
+  message?: string[];
+};
+
 function getDokuConfig() {
   const clientId = process.env.DOKU_CLIENT_ID?.trim();
   const secretKey = process.env.DOKU_SECRET_KEY?.trim();
@@ -117,7 +130,7 @@ function createSignature(input: {
   requestId: string;
   requestTimestamp: string;
   requestTarget: string;
-  digest: string;
+  digest?: string;
   secretKey: string;
 }) {
   const component = [
@@ -125,8 +138,10 @@ function createSignature(input: {
     `Request-Id:${input.requestId}`,
     `Request-Timestamp:${input.requestTimestamp}`,
     `Request-Target:${input.requestTarget}`,
-    `Digest:${input.digest}`
-  ].join("\n");
+    input.digest ? `Digest:${input.digest}` : null
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   const signature = crypto.createHmac("sha256", input.secretKey).update(component).digest("base64");
 
@@ -385,7 +400,17 @@ function shouldSendPaymentReceiptEmail() {
   return process.env.EMAIL_SEND_PAYMENT_RECEIPT === "true";
 }
 
-export async function handleDokuCallback(payload: DokuCallbackPayload) {
+function getDokuStatusErrorMessage(responseJson: DokuStatusResponse) {
+  const responseError = responseJson.response?.error;
+
+  if (responseError?.message || responseError?.code) {
+    return [responseError.code, responseError.message].filter(Boolean).join(": ");
+  }
+
+  return responseJson.error_messages?.join(", ") || responseJson.message?.join(", ") || "Gagal membaca status pembayaran DOKU.";
+}
+
+async function applyDokuPaymentUpdate(payload: DokuCallbackPayload) {
   const invoiceNumber = payload.order?.invoice_number;
   const dokuStatus = payload.transaction?.status;
 
@@ -401,15 +426,6 @@ export async function handleDokuCallback(payload: DokuCallbackPayload) {
     where: { invoiceNumber },
     include: {
       client: true,
-      emailLogs: {
-        where: {
-          status: "SENT",
-          subject: {
-            startsWith: "Pembayaran Diterima"
-          }
-        },
-        take: 1
-      },
       payments: {
         where: {
           provider: "DOKU"
@@ -432,8 +448,7 @@ export async function handleDokuCallback(payload: DokuCallbackPayload) {
   const paymentMethod = getPaymentMethod(payload);
   const providerTransactionId = payload.transaction?.original_request_id || latestPayment?.providerTransactionId || null;
   const rawCallback = payload as Prisma.InputJsonValue;
-  const shouldSendReceipt =
-    shouldSendPaymentReceiptEmail() && paymentStatus === "PAID" && invoice.status !== "PAID" && invoice.emailLogs.length === 0;
+  let becamePaid = false;
 
   await prisma.$transaction(async (tx) => {
     if (latestPayment) {
@@ -463,13 +478,19 @@ export async function handleDokuCallback(payload: DokuCallbackPayload) {
     }
 
     if (paymentStatus === "PAID") {
-      await tx.invoice.update({
-        where: { id: invoice.id },
+      const updateResult = await tx.invoice.updateMany({
+        where: {
+          id: invoice.id,
+          status: {
+            not: "PAID"
+          }
+        },
         data: {
           status: "PAID",
           paidAt
         }
       });
+      becamePaid = updateResult.count > 0;
     } else if (paymentStatus === "EXPIRED" && invoice.status !== "PAID") {
       await tx.invoice.update({
         where: { id: invoice.id },
@@ -487,28 +508,60 @@ export async function handleDokuCallback(payload: DokuCallbackPayload) {
     }
   });
 
-  if (shouldSendReceipt && paidAt) {
+  return {
+    invoice,
+    invoiceNumber,
+    paymentStatus,
+    dokuStatus,
+    paidAt,
+    paymentMethod,
+    becamePaid
+  };
+}
+
+async function maybeSendPaymentReceipt(input: Awaited<ReturnType<typeof applyDokuPaymentUpdate>>) {
+  if (!shouldSendPaymentReceiptEmail() || input.paymentStatus !== "PAID" || !input.paidAt || !input.becamePaid) {
+    return;
+  }
+
+  const existingReceipt = await prisma.emailLog.findFirst({
+    where: {
+      invoiceId: input.invoice.id,
+      status: "SENT",
+      subject: {
+        startsWith: "Pembayaran Diterima"
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (existingReceipt) {
+    return;
+  }
+
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    const publicUrl = `${appUrl}/invoice/${invoice.publicToken}`;
-    const subject = `Pembayaran Diterima - Invoice ${invoice.invoiceNumber}`;
+    const publicUrl = `${appUrl}/invoice/${input.invoice.publicToken}`;
+    const subject = `Pembayaran Diterima - Invoice ${input.invoice.invoiceNumber}`;
 
     try {
       const result = await sendPaymentReceiptEmail({
-        recipientEmail: invoice.client.email,
-        clientName: invoice.client.name,
-        companyName: invoice.client.companyName,
-        invoiceNumber: invoice.invoiceNumber,
-        invoiceTitle: invoice.title,
-        totalAmount: invoice.totalAmount.toString(),
-        paidAt,
-        paymentMethod,
+        recipientEmail: input.invoice.client.email,
+        clientName: input.invoice.client.name,
+        companyName: input.invoice.client.companyName,
+        invoiceNumber: input.invoice.invoiceNumber,
+        invoiceTitle: input.invoice.title,
+        totalAmount: input.invoice.totalAmount.toString(),
+        paidAt: input.paidAt,
+        paymentMethod: input.paymentMethod,
         publicUrl
       });
 
       await prisma.emailLog.create({
         data: {
-          invoiceId: invoice.id,
-          recipientEmail: invoice.client.email,
+          invoiceId: input.invoice.id,
+          recipientEmail: input.invoice.client.email,
           subject: result.subject,
           status: "SENT",
           providerResponse: result.response,
@@ -520,8 +573,8 @@ export async function handleDokuCallback(payload: DokuCallbackPayload) {
 
       await prisma.emailLog.create({
         data: {
-          invoiceId: invoice.id,
-          recipientEmail: invoice.client.email,
+          invoiceId: input.invoice.id,
+          recipientEmail: input.invoice.client.email,
           subject,
           status: "FAILED",
           providerResponse: {
@@ -530,16 +583,82 @@ export async function handleDokuCallback(payload: DokuCallbackPayload) {
         }
       });
     }
-  }
+}
+
+export async function handleDokuCallback(payload: DokuCallbackPayload) {
+  const result = await applyDokuPaymentUpdate(payload);
+
+  await maybeSendPaymentReceipt(result);
 
   return {
-    invoiceId: invoice.id,
-    invoiceNumber,
-    paymentStatus,
-    dokuStatus
+    invoiceId: result.invoice.id,
+    invoiceNumber: result.invoiceNumber,
+    paymentStatus: result.paymentStatus,
+    dokuStatus: result.dokuStatus,
+    becamePaid: result.becamePaid
   };
 }
 
-export async function getDokuPaymentStatus() {
-  throw new Error("getDokuPaymentStatus will be implemented if payment status polling is needed.");
+export async function getDokuPaymentStatus(invoiceNumber: string) {
+  const config = getDokuConfig();
+  const requestId = crypto.randomUUID();
+  const requestTimestamp = createRequestTimestamp();
+  const requestTarget = `${STATUS_TARGET_PREFIX}/${encodeURIComponent(invoiceNumber)}`;
+  const signature = createSignature({
+    clientId: config.clientId,
+    requestId,
+    requestTimestamp,
+    requestTarget,
+    secretKey: config.secretKey
+  });
+
+  const response = await fetch(`${config.baseUrl}${requestTarget}`, {
+    method: "GET",
+    headers: {
+      "Client-Id": config.clientId,
+      "Request-Id": requestId,
+      "Request-Timestamp": requestTimestamp,
+      Signature: signature
+    }
+  });
+  const responseJson = (await response.json()) as DokuStatusResponse;
+
+  if (!response.ok) {
+    throw new Error(getDokuStatusErrorMessage(responseJson));
+  }
+
+  return responseJson;
+}
+
+export async function syncDokuPaymentStatus(invoiceId: string) {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: {
+      invoiceNumber: true
+    }
+  });
+
+  if (!invoice) {
+    throw new Error("Invoice tidak ditemukan.");
+  }
+
+  const statusPayload = await getDokuPaymentStatus(invoice.invoiceNumber);
+  const payload: DokuCallbackPayload = {
+    ...statusPayload,
+    order: {
+      ...statusPayload.order,
+      invoice_number: statusPayload.order?.invoice_number || invoice.invoiceNumber
+    }
+  };
+  const result = await applyDokuPaymentUpdate(payload);
+
+  await maybeSendPaymentReceipt(result);
+
+  return {
+    invoiceId: result.invoice.id,
+    invoiceNumber: result.invoiceNumber,
+    paymentStatus: result.paymentStatus,
+    dokuStatus: result.dokuStatus,
+    becamePaid: result.becamePaid
+  };
 }

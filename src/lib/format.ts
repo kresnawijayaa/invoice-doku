@@ -12,3 +12,7 @@ export function formatCurrency(value: number | string) {
 export function formatDate(value: Date) {
   return format(value, "d MMMM yyyy", { locale: id });
 }
+
+export function formatDateTime(value: Date) {
+  return format(value, "d MMMM yyyy HH:mm", { locale: id });
+}

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/status-badge";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { deleteInvoiceAction, sendInvoiceAction, updateInvoiceStatusAction } from "@/server/invoice-actions";
+import { deleteInvoiceAction, sendInvoiceAction, syncDokuPaymentStatusAction, updateInvoiceStatusAction } from "@/server/invoice-actions";
 
 export default async function InvoiceDetailPage({
   params,
@@ -62,6 +62,12 @@ export default async function InvoiceDetailPage({
                 Send Invoice
               </button>
             </form>
+            <form action={syncDokuPaymentStatusAction}>
+              <input name="id" type="hidden" value={invoice.id} />
+              <button className="h-10 w-full rounded-md border border-line bg-white px-3 text-sm font-medium text-ink" type="submit">
+                Sync DOKU
+              </button>
+            </form>
             <form action={updateInvoiceStatusAction} className="grid grid-cols-[1fr_auto] gap-2 sm:col-span-2 lg:col-span-1">
               <input name="id" type="hidden" value={invoice.id} />
               <select className="h-10 min-w-0 rounded-md border border-line bg-white px-3 text-sm" name="status" defaultValue={invoice.status}>
@@ -97,6 +103,11 @@ export default async function InvoiceDetailPage({
         {query?.success === "email" ? (
           <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
             Invoice berhasil dikirim ke {invoice.client.email}.
+          </div>
+        ) : null}
+        {query?.success === "payment-sync" ? (
+          <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            Status pembayaran DOKU berhasil disinkronkan.
           </div>
         ) : null}
         {query?.success === "updated" ? (
@@ -209,6 +220,64 @@ export default async function InvoiceDetailPage({
               >
                 Download PDF
               </Link>
+            </section>
+
+            <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
+              <h2 className="text-base font-semibold text-ink">Payment Log</h2>
+              {invoice.payments.length > 0 ? (
+                <div className="mt-4 space-y-3">
+                  {invoice.payments.map((payment) => (
+                    <article key={payment.id} className="rounded-md border border-line p-3 text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium text-ink">{payment.provider}</span>
+                        <StatusBadge status={payment.status} />
+                      </div>
+                      <dl className="mt-3 space-y-2">
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-muted">Amount</dt>
+                          <dd className="font-medium text-ink">{formatCurrency(payment.amount.toString())}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-muted">Method</dt>
+                          <dd className="break-all text-right font-medium text-ink">{payment.paymentMethod || "-"}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-muted">Transaction ID</dt>
+                          <dd className="break-all text-right font-medium text-ink">{payment.providerTransactionId || "-"}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-muted">Created</dt>
+                          <dd className="text-right font-medium text-ink">{formatDateTime(payment.createdAt)}</dd>
+                        </div>
+                        {payment.paidAt ? (
+                          <div className="flex justify-between gap-3">
+                            <dt className="text-muted">Paid</dt>
+                            <dd className="text-right font-medium text-ink">{formatDateTime(payment.paidAt)}</dd>
+                          </div>
+                        ) : null}
+                      </dl>
+                      {payment.paymentUrl ? (
+                        <Link
+                          className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-md border border-line bg-white px-3 font-medium text-ink"
+                          href={payment.paymentUrl}
+                        >
+                          Buka Payment URL
+                        </Link>
+                      ) : null}
+                      {payment.rawCallback ? (
+                        <details className="mt-3 rounded-md bg-gray-50 px-3 py-2">
+                          <summary className="cursor-pointer text-xs font-medium uppercase text-muted">Raw callback</summary>
+                          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words text-xs text-muted">
+                            {JSON.stringify(payment.rawCallback, null, 2)}
+                          </pre>
+                        </details>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-muted">Belum ada payment request atau callback.</p>
+              )}
             </section>
 
             <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
