@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createActivityLog } from "@/services/activity-log";
 import { prisma } from "@/lib/prisma";
 import { generateInvoicePdf } from "@/services/invoice-pdf";
 
@@ -28,6 +29,18 @@ export async function GET(
   }
 
   const pdf = generateInvoicePdf(invoice);
+
+  createActivityLog({
+    invoiceId: invoice.id,
+    actor: "public",
+    event: "invoice.pdf_downloaded",
+    message: "PDF invoice diunduh dari public link.",
+    metadata: {
+      invoiceNumber: invoice.invoiceNumber
+    }
+  }).catch((error) => {
+    console.error("Failed to write PDF activity log", error);
+  });
 
   return new NextResponse(pdf, {
     headers: {

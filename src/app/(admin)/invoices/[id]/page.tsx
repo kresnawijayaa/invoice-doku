@@ -25,6 +25,10 @@ export default async function InvoiceDetailPage({
       },
       emailLogs: {
         orderBy: { createdAt: "desc" }
+      },
+      activityLogs: {
+        orderBy: { createdAt: "desc" },
+        take: 20
       }
     }
   });
@@ -296,6 +300,26 @@ export default async function InvoiceDetailPage({
                 </div>
               ) : (
                 <p className="mt-2 text-sm text-muted">Belum ada email yang dikirim.</p>
+              )}
+            </section>
+
+            <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
+              <h2 className="text-base font-semibold text-ink">Activity Log</h2>
+              {invoice.activityLogs.length > 0 ? (
+                <div className="mt-4 space-y-3">
+                  {invoice.activityLogs.map((log) => (
+                    <article key={log.id} className="rounded-md border border-line p-3 text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium text-ink">{log.event}</span>
+                        <span className="text-xs text-muted">{formatDateTime(log.createdAt)}</span>
+                      </div>
+                      <p className="mt-1 text-muted">{log.message}</p>
+                      <p className="mt-2 text-xs uppercase text-muted">Actor: {log.actor}</p>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-muted">Belum ada activity log.</p>
               )}
             </section>
           </aside>

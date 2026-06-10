@@ -3,6 +3,7 @@ import "server-only";
 import crypto from "crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { createActivityLog } from "@/services/activity-log";
 import { sendPaymentReceiptEmail } from "@/services/email";
 
 const CHECKOUT_TARGET = "/checkout/v1/payment";
@@ -311,6 +312,18 @@ export async function createDokuPayment(invoiceId: string) {
       }
     });
 
+    await createActivityLog({
+      invoiceId: invoice.id,
+      actor: "system",
+      event: "payment.create_failed",
+      message,
+      metadata: {
+        provider: "DOKU",
+        httpStatus: response.status,
+        requestId
+      }
+    });
+
     throw new Error(message);
   }
 
@@ -335,6 +348,18 @@ export async function createDokuPayment(invoiceId: string) {
       rawCallback: {
         response: responseJson
       }
+    }
+  });
+
+  await createActivityLog({
+    invoiceId: invoice.id,
+    actor: "system",
+    event: "payment.created",
+    message: "Payment request DOKU dibuat.",
+    metadata: {
+      provider: "DOKU",
+      providerTransactionId,
+      requestId
     }
   });
 
@@ -508,6 +533,20 @@ async function applyDokuPaymentUpdate(payload: DokuCallbackPayload) {
     }
   });
 
+  await createActivityLog({
+    invoiceId: invoice.id,
+    actor: "doku",
+    event: "payment.status_updated",
+    message: `Status pembayaran DOKU: ${paymentStatus}.`,
+    metadata: {
+      dokuStatus,
+      paymentStatus,
+      paymentMethod,
+      providerTransactionId,
+      becamePaid
+    }
+  });
+
   return {
     invoice,
     invoiceNumber,
@@ -568,6 +607,17 @@ async function maybeSendPaymentReceipt(input: Awaited<ReturnType<typeof applyDok
           sentAt: new Date()
         }
       });
+
+      await createActivityLog({
+        invoiceId: input.invoice.id,
+        actor: "system",
+        event: "payment.receipt_sent",
+        message: `Email receipt pembayaran dikirim ke ${input.invoice.client.email}.`,
+        metadata: {
+          recipientEmail: input.invoice.client.email,
+          subject: result.subject
+        }
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Email receipt gagal dikirim.";
 
@@ -580,6 +630,17 @@ async function maybeSendPaymentReceipt(input: Awaited<ReturnType<typeof applyDok
           providerResponse: {
             error: message
           }
+        }
+      });
+
+      await createActivityLog({
+        invoiceId: input.invoice.id,
+        actor: "system",
+        event: "payment.receipt_failed",
+        message,
+        metadata: {
+          recipientEmail: input.invoice.client.email,
+          subject
         }
       });
     }

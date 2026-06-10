@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { createActivityLog } from "@/services/activity-log";
 import { syncDokuPaymentStatus } from "@/services/doku";
 import { sendInvoiceEmail } from "@/services/email";
 
@@ -143,6 +144,17 @@ export async function createInvoiceAction(formData: FormData) {
     select: { id: true }
   });
 
+  await createActivityLog({
+    invoiceId: invoice.id,
+    actor: "admin",
+    event: "invoice.created",
+    message: "Invoice dibuat.",
+    metadata: {
+      invoiceNumber,
+      totalAmount
+    }
+  });
+
   revalidatePath("/invoices");
   redirect(`/invoices/${invoice.id}?success=created`);
 }
@@ -225,6 +237,19 @@ export async function updateInvoiceAction(formData: FormData) {
     });
   });
 
+  await createActivityLog({
+    invoiceId: id,
+    actor: "admin",
+    event: "invoice.updated",
+    message: "Invoice diperbarui.",
+    metadata: {
+      subtotal,
+      taxAmount: parsed.data.taxAmount,
+      discountAmount: parsed.data.discountAmount,
+      totalAmount
+    }
+  });
+
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${id}`);
   revalidatePath(`/invoices/${id}/edit`);
@@ -244,6 +269,16 @@ export async function updateInvoiceStatusAction(formData: FormData) {
     data: {
       status: status.data,
       paidAt: status.data === "PAID" ? new Date() : null
+    }
+  });
+
+  await createActivityLog({
+    invoiceId: id,
+    actor: "admin",
+    event: "invoice.status_updated",
+    message: `Status invoice diubah menjadi ${status.data}.`,
+    metadata: {
+      status: status.data
     }
   });
 
@@ -334,6 +369,17 @@ export async function sendInvoiceAction(formData: FormData) {
         }
       })
     ]);
+
+    await createActivityLog({
+      invoiceId: invoice.id,
+      actor: "admin",
+      event: "invoice.email_sent",
+      message: `Invoice dikirim ke ${invoice.client.email}.`,
+      metadata: {
+        recipientEmail: invoice.client.email,
+        subject: result.subject
+      }
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Email gagal dikirim.";
 
@@ -346,6 +392,17 @@ export async function sendInvoiceAction(formData: FormData) {
         providerResponse: {
           error: message
         }
+      }
+    });
+
+    await createActivityLog({
+      invoiceId: invoice.id,
+      actor: "system",
+      event: "invoice.email_failed",
+      message,
+      metadata: {
+        recipientEmail: invoice.client.email,
+        subject
       }
     });
 
@@ -366,7 +423,15 @@ export async function syncDokuPaymentStatusAction(formData: FormData) {
   }
 
   try {
-    await syncDokuPaymentStatus(id);
+    const result = await syncDokuPaymentStatus(id);
+
+    await createActivityLog({
+      invoiceId: id,
+      actor: "admin",
+      event: "payment.sync",
+      message: `Status DOKU disinkronkan: ${result.paymentStatus}.`,
+      metadata: result
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Gagal sync status pembayaran DOKU.";
 
@@ -391,6 +456,15 @@ export async function markOverdueInvoicesAction() {
     },
     data: {
       status: "OVERDUE"
+    }
+  });
+
+  await createActivityLog({
+    actor: "admin",
+    event: "invoice.overdue_checked",
+    message: `${result.count} invoice overdue diperbarui.`,
+    metadata: {
+      count: result.count
     }
   });
 

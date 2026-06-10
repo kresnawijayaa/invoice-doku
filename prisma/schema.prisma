@@ -80,6 +80,7 @@ model Invoice {
   items          InvoiceItem[]
   payments       Payment[]
   emailLogs      EmailLog[]
+  activityLogs   ActivityLog[]
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
 
@@ -147,4 +148,20 @@ model AppSetting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("app_settings")
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  invoiceId String?  @map("invoice_id")
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  actor     String
+  event     String
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([invoiceId])
+  @@index([event])
+  @@index([createdAt])
+  @@map("activity_logs")
 }
