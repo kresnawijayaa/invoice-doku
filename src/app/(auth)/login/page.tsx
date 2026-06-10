@@ -22,8 +22,8 @@ export default async function LoginPage({
   const error = params?.error ? errorMessages[params.error] : null;
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-6">
-      <section className="w-full max-w-sm rounded-lg border border-line bg-panel p-6 shadow-sm">
+    <main className="flex min-h-screen items-center justify-center px-4 py-6 sm:px-6">
+      <section className="w-full max-w-sm rounded-lg border border-line bg-panel p-5 shadow-sm sm:p-6">
         <h1 className="text-xl font-semibold text-ink">Login Admin</h1>
         <p className="mt-2 text-sm text-muted">Masuk dengan akun admin dari seed database.</p>
         {error ? (
@@ -52,7 +52,7 @@ export default async function LoginPage({
               required
             />
           </label>
-          <button className="h-10 w-full rounded-md bg-ink text-sm font-medium text-white" type="submit">
+          <button className="h-11 w-full rounded-md bg-ink text-sm font-medium text-white" type="submit">
             Masuk
           </button>
         </form>

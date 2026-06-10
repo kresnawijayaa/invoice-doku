@@ -13,7 +13,7 @@ type ClientFormProps = {
 
 export function ClientForm({ action, client, submitLabel }: ClientFormProps) {
   return (
-    <form action={action} className="rounded-lg border border-line bg-panel p-6 shadow-sm">
+    <form action={action} className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
       {client ? <input name="id" type="hidden" value={client.id} /> : null}
       <div className="grid gap-5 md:grid-cols-2">
         <label className="block">
@@ -69,7 +69,7 @@ export function ClientForm({ action, client, submitLabel }: ClientFormProps) {
         </label>
       </div>
       <div className="mt-6 flex justify-end">
-        <button className="h-10 rounded-md bg-ink px-4 text-sm font-medium text-white" type="submit">
+        <button className="h-11 w-full rounded-md bg-ink px-4 text-sm font-medium text-white sm:w-auto" type="submit">
           {submitLabel}
         </button>
       </div>

@@ -105,7 +105,7 @@ export function InvoiceForm({ action, clients, invoice, submitLabel = "Simpan In
   return (
     <form action={action} className="space-y-6">
       {invoice ? <input name="id" type="hidden" value={invoice.id} /> : null}
-      <section className="rounded-lg border border-line bg-panel p-6 shadow-sm">
+      <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
         <div className="grid gap-5 md:grid-cols-2">
           <label className="block">
             <span className="text-sm font-medium text-ink">Client</span>
@@ -187,11 +187,11 @@ export function InvoiceForm({ action, clients, invoice, submitLabel = "Simpan In
         </div>
       </section>
 
-      <section className="rounded-lg border border-line bg-panel p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
+      <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-base font-semibold text-ink">Item Tagihan</h2>
           <button
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-white px-3 text-sm font-medium text-ink"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-line bg-white px-3 text-sm font-medium text-ink sm:w-auto"
             type="button"
             onClick={() => setItems((current) => [...current, createEmptyItem()])}
           >
@@ -241,7 +241,7 @@ export function InvoiceForm({ action, clients, invoice, submitLabel = "Simpan In
                 />
               </label>
               <button
-                className="mt-5 inline-flex h-10 items-center justify-center rounded-md border border-line bg-white text-muted hover:text-red-700"
+                className="inline-flex h-10 items-center justify-center rounded-md border border-line bg-white text-muted hover:text-red-700 md:mt-5"
                 type="button"
                 aria-label="Hapus item"
                 onClick={() => removeItem(item.id)}
@@ -263,7 +263,7 @@ export function InvoiceForm({ action, clients, invoice, submitLabel = "Simpan In
       </section>
 
       <div className="flex justify-end">
-        <button className="h-10 rounded-md bg-ink px-4 text-sm font-medium text-white" type="submit">
+        <button className="h-11 w-full rounded-md bg-ink px-4 text-sm font-medium text-white sm:w-auto" type="submit">
           {submitLabel}
         </button>
       </div>

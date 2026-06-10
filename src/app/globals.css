@@ -9,8 +9,20 @@
 body {
   background: #f3f4f6;
   color: #111827;
+  overflow-x: hidden;
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
 }

@@ -37,7 +37,7 @@ export default async function InvoiceDetailPage({
   const publicUrl = `${appUrl}/invoice/${invoice.publicToken}`;
 
   return (
-    <main className="p-6">
+    <main className="px-4 py-5 sm:p-6">
       <section className="mx-auto max-w-5xl">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -50,21 +50,21 @@ export default async function InvoiceDetailPage({
             </div>
             <p className="mt-2 text-sm text-muted">{invoice.title}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2 lg:flex lg:flex-wrap">
             {invoice.status !== "PAID" ? (
-              <Link className="inline-flex h-10 items-center rounded-md border border-line bg-white px-3 text-sm font-medium text-ink" href={`/invoices/${invoice.id}/edit`}>
+              <Link className="inline-flex h-10 items-center justify-center rounded-md border border-line bg-white px-3 text-sm font-medium text-ink" href={`/invoices/${invoice.id}/edit`}>
                 Edit Invoice
               </Link>
             ) : null}
             <form action={sendInvoiceAction}>
               <input name="id" type="hidden" value={invoice.id} />
-              <button className="h-10 rounded-md bg-ink px-3 text-sm font-medium text-white" type="submit">
+              <button className="h-10 w-full rounded-md bg-ink px-3 text-sm font-medium text-white" type="submit">
                 Send Invoice
               </button>
             </form>
-            <form action={updateInvoiceStatusAction} className="flex gap-2">
+            <form action={updateInvoiceStatusAction} className="grid grid-cols-[1fr_auto] gap-2 sm:col-span-2 lg:col-span-1">
               <input name="id" type="hidden" value={invoice.id} />
-              <select className="h-10 rounded-md border border-line bg-white px-3 text-sm" name="status" defaultValue={invoice.status}>
+              <select className="h-10 min-w-0 rounded-md border border-line bg-white px-3 text-sm" name="status" defaultValue={invoice.status}>
                 {["DRAFT", "SENT", "UNPAID", "PAID", "OVERDUE", "CANCELLED"].map((status) => (
                   <option key={status} value={status}>
                     {status}
@@ -77,7 +77,7 @@ export default async function InvoiceDetailPage({
             </form>
             <form action={deleteInvoiceAction}>
               <input name="id" type="hidden" value={invoice.id} />
-              <button className="h-10 rounded-md border border-red-200 bg-white px-3 text-sm font-medium text-red-700" type="submit">
+              <button className="h-10 w-full rounded-md border border-red-200 bg-white px-3 text-sm font-medium text-red-700" type="submit">
                 Hapus
               </button>
             </form>
@@ -109,7 +109,7 @@ export default async function InvoiceDetailPage({
         ) : null}
 
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          <section className="rounded-lg border border-line bg-panel p-6 shadow-sm">
+          <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
             <div className="mb-6 grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-xs font-medium uppercase text-muted">Client</p>
@@ -124,7 +124,29 @@ export default async function InvoiceDetailPage({
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-md border border-line">
+            <div className="space-y-3 md:hidden">
+              {invoice.items.map((item) => (
+                <article key={item.id} className="rounded-md border border-line p-4">
+                  <p className="font-medium leading-6 text-ink">{item.description}</p>
+                  <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs uppercase text-muted">Qty</p>
+                      <p className="mt-1 text-ink">{item.quantity.toString()}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs uppercase text-muted">Harga</p>
+                      <p className="mt-1 text-ink">{formatCurrency(item.unitPrice.toString())}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs uppercase text-muted">Total</p>
+                      <p className="mt-1 font-semibold text-ink">{formatCurrency(item.totalPrice.toString())}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-md border border-line md:block">
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead className="bg-gray-50 text-xs uppercase text-muted">
                   <tr>
@@ -151,7 +173,7 @@ export default async function InvoiceDetailPage({
           </section>
 
           <aside className="space-y-6">
-            <section className="rounded-lg border border-line bg-panel p-6 shadow-sm">
+            <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
               <h2 className="text-base font-semibold text-ink">Ringkasan</h2>
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -175,21 +197,21 @@ export default async function InvoiceDetailPage({
               </dl>
             </section>
 
-            <section className="rounded-lg border border-line bg-panel p-6 shadow-sm">
+            <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
               <h2 className="text-base font-semibold text-ink">Public Link</h2>
               <p className="mt-2 break-all text-sm text-muted">{publicUrl}</p>
-              <Link className="mt-4 inline-flex h-10 items-center rounded-md bg-ink px-4 text-sm font-medium text-white" href={`/invoice/${invoice.publicToken}`}>
+              <Link className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md bg-ink px-4 text-sm font-medium text-white sm:w-auto" href={`/invoice/${invoice.publicToken}`}>
                 Buka Invoice
               </Link>
               <Link
-                className="ml-2 mt-4 inline-flex h-10 items-center rounded-md border border-line bg-white px-4 text-sm font-medium text-ink"
+                className="mt-2 inline-flex h-10 w-full items-center justify-center rounded-md border border-line bg-white px-4 text-sm font-medium text-ink sm:ml-2 sm:mt-4 sm:w-auto"
                 href={`/invoice/${invoice.publicToken}/pdf`}
               >
                 Download PDF
               </Link>
             </section>
 
-            <section className="rounded-lg border border-line bg-panel p-6 shadow-sm">
+            <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
               <h2 className="text-base font-semibold text-ink">Email Log</h2>
               {invoice.emailLogs.length > 0 ? (
                 <div className="mt-4 space-y-3">

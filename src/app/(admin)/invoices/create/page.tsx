@@ -21,7 +21,7 @@ export default async function CreateInvoicePage({
   ]);
 
   return (
-    <main className="p-6">
+    <main className="px-4 py-5 sm:p-6">
       <section className="mx-auto max-w-5xl">
         <div className="mb-6">
           <Link className="text-sm font-medium text-muted underline-offset-4 hover:text-ink hover:underline" href="/invoices">
@@ -38,9 +38,9 @@ export default async function CreateInvoicePage({
         {clients.length > 0 ? (
           <InvoiceForm action={createInvoiceAction} clients={clients} />
         ) : (
-          <div className="rounded-lg border border-line bg-panel p-6 shadow-sm">
+          <div className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
             <p className="text-sm text-muted">Tambahkan client terlebih dahulu sebelum membuat invoice.</p>
-            <Link className="mt-4 inline-flex h-10 items-center rounded-md bg-ink px-4 text-sm font-medium text-white" href="/clients/create">
+            <Link className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-md bg-ink px-4 text-sm font-medium text-white sm:w-auto" href="/clients/create">
               Tambah Client
             </Link>
           </div>

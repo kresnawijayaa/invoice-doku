@@ -62,17 +62,17 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <main className="p-6">
+    <main className="px-4 py-5 sm:p-6">
       <section className="mx-auto max-w-6xl">
         <div className="mb-6">
           <p className="text-sm font-medium text-muted">Admin</p>
           <h1 className="text-2xl font-semibold text-ink">Dashboard</h1>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map(([label, value]) => (
             <article key={label} className="rounded-lg border border-line bg-panel p-5 shadow-sm">
               <p className="text-sm text-muted">{label}</p>
-              <p className="mt-2 text-3xl font-semibold text-ink">{value}</p>
+              <p className="mt-2 break-words text-2xl font-semibold text-ink sm:text-3xl">{value}</p>
             </article>
           ))}
         </div>
@@ -84,6 +84,29 @@ export default async function DashboardPage() {
               Lihat semua
             </Link>
           </div>
+          <div className="divide-y divide-line md:hidden">
+            {recentInvoices.length > 0 ? (
+              recentInvoices.map((invoice) => (
+                <Link key={invoice.id} className="block p-4 hover:bg-gray-50" href={`/invoices/${invoice.id}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="break-words font-medium text-ink">{invoice.invoiceNumber}</p>
+                      <p className="mt-1 text-sm text-muted">{invoice.client.companyName || invoice.client.name}</p>
+                    </div>
+                    <StatusBadge status={invoice.status} />
+                  </div>
+                  <div className="mt-3 flex items-center justify-between gap-3 text-sm">
+                    <span className="text-muted">Due {formatDate(invoice.dueDate)}</span>
+                    <span className="font-medium text-ink">{formatCurrency(invoice.totalAmount.toString())}</span>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <p className="px-4 py-10 text-center text-sm text-muted">Belum ada invoice.</p>
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-muted">
               <tr>
@@ -120,6 +143,7 @@ export default async function DashboardPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </section>
     </main>

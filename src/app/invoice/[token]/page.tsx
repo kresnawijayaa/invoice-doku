@@ -63,15 +63,15 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
   const clientStatus = invoice.status === "PAID" ? "PAID" : "UNPAID";
 
   return (
-    <main className="min-h-screen bg-gray-100 px-4 py-6 sm:px-6 lg:py-10">
+    <main className="min-h-screen bg-gray-100 px-3 py-4 sm:px-6 lg:py-10">
       <section className="mx-auto max-w-5xl">
-        <div className="mb-6 flex flex-col gap-4 border-b border-gray-200 pb-6 md:flex-row md:items-end md:justify-between">
-          <div>
+        <div className="mb-4 flex flex-col gap-4 border-b border-gray-200 pb-5 sm:mb-6 sm:pb-6 md:flex-row md:items-end md:justify-between">
+          <div className="min-w-0">
             <p className="text-sm font-medium text-muted">Invoice</p>
-            <h1 className="mt-2 text-3xl font-semibold text-ink">{invoice.invoiceNumber}</h1>
+            <h1 className="mt-2 break-words text-2xl font-semibold text-ink sm:text-3xl">{invoice.invoiceNumber}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{invoice.title}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={clientStatus} />
             <span className="text-sm text-muted">Due {formatDate(invoice.dueDate)}</span>
           </div>
@@ -79,12 +79,12 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
 
         <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
           <section className="rounded-lg border border-line bg-panel shadow-sm">
-            <div className="grid gap-6 border-b border-line p-6 md:grid-cols-2">
+            <div className="grid gap-6 border-b border-line p-4 sm:p-6 md:grid-cols-2">
               <div>
                 <p className="text-xs font-semibold uppercase text-muted">Ditagihkan Kepada</p>
                 <p className="mt-3 text-base font-semibold text-ink">{invoice.client.name}</p>
-                <p className="text-sm text-muted">{invoice.client.companyName || "-"}</p>
-                <p className="mt-2 text-sm text-muted">{invoice.client.email}</p>
+                <p className="break-words text-sm text-muted">{invoice.client.companyName || "-"}</p>
+                <p className="mt-2 break-all text-sm text-muted">{invoice.client.email}</p>
                 {invoice.client.phone ? <p className="text-sm text-muted">{invoice.client.phone}</p> : null}
                 {invoice.client.address ? <p className="mt-2 whitespace-pre-line text-sm text-muted">{invoice.client.address}</p> : null}
               </div>
@@ -96,7 +96,30 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
               </div>
             </div>
 
-            <div className="overflow-x-auto p-6">
+            <div className="p-4 sm:p-6">
+              <div className="space-y-3 md:hidden">
+                {invoice.items.map((item) => (
+                  <article key={item.id} className="rounded-md border border-line p-4">
+                    <p className="font-medium leading-6 text-ink">{item.description}</p>
+                    <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs uppercase text-muted">Qty</p>
+                        <p className="mt-1 text-ink">{item.quantity.toString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs uppercase text-muted">Harga</p>
+                        <p className="mt-1 text-ink">{formatCurrency(item.unitPrice.toString())}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs uppercase text-muted">Total</p>
+                        <p className="mt-1 font-semibold text-ink">{formatCurrency(item.totalPrice.toString())}</p>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead className="border-b border-line text-xs uppercase text-muted">
                   <tr>
@@ -117,6 +140,7 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
                   ))}
                 </tbody>
               </table>
+              </div>
 
               {invoice.notes ? (
                 <div className="mt-6 rounded-md bg-gray-50 p-4">
@@ -128,9 +152,9 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
           </section>
 
           <aside className="space-y-6">
-            <section className="rounded-lg border border-line bg-panel p-6 shadow-sm">
+            <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
               <p className="text-sm font-medium text-muted">Total Tagihan</p>
-              <p className="mt-2 text-3xl font-semibold text-ink">{formatCurrency(invoice.totalAmount.toString())}</p>
+              <p className="mt-2 break-words text-2xl font-semibold text-ink sm:text-3xl">{formatCurrency(invoice.totalAmount.toString())}</p>
 
               <dl className="mt-6 space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -167,7 +191,7 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
               </Link>
             </section>
 
-            <section className="rounded-lg border border-line bg-panel p-6 shadow-sm">
+            <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
               <h2 className="text-base font-semibold text-ink">Informasi Pembayaran</h2>
               <p className="mt-2 text-sm leading-6 text-muted">
                 Pembayaran diproses melalui DOKU. Setelah pembayaran berhasil, status invoice akan diperbarui otomatis.

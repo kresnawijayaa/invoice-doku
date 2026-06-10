@@ -57,7 +57,7 @@ export default async function EditInvoicePage({
   };
 
   return (
-    <main className="p-6">
+    <main className="px-4 py-5 sm:p-6">
       <section className="mx-auto max-w-5xl">
         <div className="mb-6">
           <Link className="text-sm font-medium text-muted underline-offset-4 hover:text-ink hover:underline" href={`/invoices/${invoice.id}`}>

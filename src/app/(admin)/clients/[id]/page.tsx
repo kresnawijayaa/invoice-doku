@@ -33,7 +33,7 @@ export default async function ClientDetailPage({
   }
 
   return (
-    <main className="p-6">
+    <main className="px-4 py-5 sm:p-6">
       <section className="mx-auto max-w-4xl">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -45,7 +45,7 @@ export default async function ClientDetailPage({
           </div>
           <form action={deleteClientAction}>
             <input name="id" type="hidden" value={client.id} />
-            <button className="h-10 rounded-md border border-red-200 bg-white px-4 text-sm font-medium text-red-700" type="submit">
+            <button className="h-10 w-full rounded-md border border-red-200 bg-white px-4 text-sm font-medium text-red-700 sm:w-auto" type="submit">
               Hapus Client
             </button>
           </form>
@@ -67,10 +67,10 @@ export default async function ClientDetailPage({
 
         <ClientForm action={updateClientAction} client={client} submitLabel="Simpan Perubahan" />
 
-        <div className="mt-6 rounded-lg border border-line bg-panel p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
+        <div className="mt-6 rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-semibold text-ink">Invoice Client</h2>
-            <Link className="text-sm font-medium text-ink underline-offset-4 hover:underline" href="/invoices/create">
+            <Link className="inline-flex h-10 w-full items-center justify-center rounded-md border border-line bg-white px-3 text-sm font-medium text-ink sm:w-auto" href="/invoices/create">
               Buat Invoice
             </Link>
           </div>
@@ -79,14 +79,14 @@ export default async function ClientDetailPage({
               {client.invoices.map((invoice) => (
                 <Link
                   key={invoice.id}
-                  className="flex items-center justify-between py-3 text-sm hover:bg-gray-50"
+                  className="flex flex-col gap-3 py-3 text-sm hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                   href={`/invoices/${invoice.id}`}
                 >
-                  <span>
+                  <span className="min-w-0">
                     <span className="block font-medium text-ink">{invoice.invoiceNumber}</span>
-                    <span className="block text-muted">{invoice.title}</span>
+                    <span className="block break-words text-muted">{invoice.title}</span>
                   </span>
-                  <span className="rounded-full border border-line px-2 py-1 text-xs font-medium text-muted">{invoice.status}</span>
+                  <span className="w-fit rounded-full border border-line px-2 py-1 text-xs font-medium text-muted">{invoice.status}</span>
                 </Link>
               ))}
             </div>

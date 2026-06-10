@@ -16,20 +16,20 @@ export function Pagination({ page, totalPages, previousHref, nextHref }: Paginat
       <p className="text-muted">
         Halaman {page} dari {totalPages}
       </p>
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex">
         {canGoPrevious ? (
-          <Link className="inline-flex h-9 items-center rounded-md border border-line bg-white px-3 font-medium text-ink" href={previousHref}>
+          <Link className="inline-flex h-10 items-center justify-center rounded-md border border-line bg-white px-3 font-medium text-ink" href={previousHref}>
             Previous
           </Link>
         ) : (
-          <span className="inline-flex h-9 items-center rounded-md border border-line bg-gray-50 px-3 font-medium text-muted">Previous</span>
+          <span className="inline-flex h-10 items-center justify-center rounded-md border border-line bg-gray-50 px-3 font-medium text-muted">Previous</span>
         )}
         {canGoNext ? (
-          <Link className="inline-flex h-9 items-center rounded-md border border-line bg-white px-3 font-medium text-ink" href={nextHref}>
+          <Link className="inline-flex h-10 items-center justify-center rounded-md border border-line bg-white px-3 font-medium text-ink" href={nextHref}>
             Next
           </Link>
         ) : (
-          <span className="inline-flex h-9 items-center rounded-md border border-line bg-gray-50 px-3 font-medium text-muted">Next</span>
+          <span className="inline-flex h-10 items-center justify-center rounded-md border border-line bg-gray-50 px-3 font-medium text-muted">Next</span>
         )}
       </div>
     </div>

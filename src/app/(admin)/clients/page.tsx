@@ -43,14 +43,14 @@ export default async function ClientsPage({
   };
 
   return (
-    <main className="p-6">
+    <main className="px-4 py-5 sm:p-6">
       <section className="mx-auto max-w-6xl">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-muted">Master Data</p>
             <h1 className="text-2xl font-semibold text-ink">Clients</h1>
           </div>
-          <Link className="inline-flex h-10 items-center rounded-md bg-ink px-4 text-sm font-medium text-white" href="/clients/create">
+          <Link className="inline-flex h-11 w-full items-center justify-center rounded-md bg-ink px-4 text-sm font-medium text-white sm:w-auto" href="/clients/create">
             Tambah Client
           </Link>
         </div>
@@ -74,17 +74,38 @@ export default async function ClientsPage({
               defaultValue={query}
             />
           </label>
-          <div className="flex items-end gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
             <button className="h-10 rounded-md bg-ink px-4 text-sm font-medium text-white" type="submit">
               Cari
             </button>
-            <Link className="inline-flex h-10 items-center rounded-md border border-line bg-white px-4 text-sm font-medium text-ink" href="/clients">
+            <Link className="inline-flex h-10 items-center justify-center rounded-md border border-line bg-white px-4 text-sm font-medium text-ink" href="/clients">
               Reset
             </Link>
           </div>
         </form>
 
         <div className="overflow-hidden rounded-lg border border-line bg-panel shadow-sm">
+          <div className="divide-y divide-line md:hidden">
+            {clients.length > 0 ? (
+              clients.map((client) => (
+                <Link key={client.id} className="block p-4 hover:bg-gray-50" href={`/clients/${client.id}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="break-words font-medium text-ink">{client.name}</p>
+                      <p className="mt-1 break-words text-sm text-muted">{client.companyName || "-"}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-line px-2 py-1 text-xs font-medium text-muted">
+                      {client._count.invoices} invoice
+                    </span>
+                  </div>
+                  <p className="mt-3 break-all text-sm text-muted">{client.email}</p>
+                </Link>
+              ))
+            ) : (
+              <p className="px-4 py-10 text-center text-sm text-muted">Tidak ada client yang cocok.</p>
+            )}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[760px] border-collapse text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase text-muted">
               <tr>
@@ -119,6 +140,7 @@ export default async function ClientsPage({
               )}
             </tbody>
           </table>
+          </div>
           <Pagination
             page={currentPage}
             totalPages={totalPages}
