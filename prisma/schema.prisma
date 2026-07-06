@@ -47,15 +47,19 @@ model User {
 }
 
 model Client {
-  id          String    @id @default(cuid())
-  name        String
-  companyName String?   @map("company_name")
-  email       String
-  phone       String?
-  address     String?
-  invoices    Invoice[]
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(cuid())
+  name            String
+  companyName     String?   @map("company_name")
+  email           String
+  phone           String?
+  address         String?
+  billingToken    String?   @unique @map("billing_token")
+  billingEnabled  Boolean   @default(true) @map("billing_enabled")
+  gracePeriodDays Int       @default(0) @map("grace_period_days")
+  invoices        Invoice[]
+  recurringPlans  RecurringInvoicePlan[]
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   @@map("clients")
 }
@@ -164,4 +168,40 @@ model ActivityLog {
   @@index([event])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+model RecurringInvoicePlan {
+  id                  String                 @id @default(cuid())
+  clientId            String                 @map("client_id")
+  client              Client                 @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  name                String
+  titleTemplate       String                 @map("title_template")
+  notes               String?
+  issueDay            Int                    @default(1) @map("issue_day")
+  dueDay              Int                    @default(10) @map("due_day")
+  taxAmount           Decimal                @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  discountAmount      Decimal                @default(0) @map("discount_amount") @db.Decimal(14, 2)
+  isActive            Boolean                @default(true) @map("is_active")
+  lastGeneratedPeriod String?                @map("last_generated_period")
+  items               RecurringInvoiceItem[]
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@index([isActive])
+  @@map("recurring_invoice_plans")
+}
+
+model RecurringInvoiceItem {
+  id          String               @id @default(cuid())
+  planId      String               @map("plan_id")
+  plan        RecurringInvoicePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Decimal              @default(1) @db.Decimal(12, 2)
+  unitPrice   Decimal              @map("unit_price") @db.Decimal(14, 2)
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  @@index([planId])
+  @@map("recurring_invoice_items")
 }

@@ -61,6 +61,8 @@ docker compose up -d
 npm run prisma:generate
 ```
 
+Jika schema Prisma baru ditarik dari git saat dev server sedang berjalan, stop `npm run dev`, jalankan `npm run prisma:generate`, lalu start ulang dev server.
+
 5. Jalankan migration:
 
 ```bash
@@ -194,6 +196,7 @@ invoice.kresnawijaya.web.id
 File terkait:
 
 - `Dockerfile`
+- `docker-compose.build.yml` (build/push image dari local ke GHCR)
 - `docker-compose.prod.yml`
 - `../caddy/Caddyfile` (reverse proxy Caddy existing)
 - `.env.production.example`
@@ -213,6 +216,52 @@ Pastikan port VPS terbuka:
 - `443/tcp`
 - `443/udp`
 
+### Build & Push Image dari Local
+
+Login ke GHCR dari local:
+
+```bash
+docker login ghcr.io
+```
+
+Pastikan `.env.production` atau env shell berisi image target:
+
+```env
+APP_IMAGE=ghcr.io/kresnawijayaa/invoice-doku:latest
+```
+
+Build dan push image dari local:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.build.yml build
+docker compose --env-file .env.production -f docker-compose.build.yml push
+```
+
+Atau dari Windows PowerShell:
+
+```powershell
+.\scripts\build-push-ghcr.ps1
+```
+
+Dengan format parameter yang sama seperti project lain:
+
+```powershell
+.\scripts\build-push-ghcr.ps1 -Registry ghcr.io -Namespace kresnawijayaa -Tag latest
+```
+
+Untuk tag versi tertentu:
+
+```bash
+APP_IMAGE=ghcr.io/kresnawijayaa/invoice-doku:2026-07-06 docker compose -f docker-compose.build.yml build
+APP_IMAGE=ghcr.io/kresnawijayaa/invoice-doku:2026-07-06 docker compose -f docker-compose.build.yml push
+```
+
+Atau:
+
+```powershell
+.\scripts\build-push-ghcr.ps1 -Registry ghcr.io -Namespace kresnawijayaa -Tag 2026-07-06
+```
+
 ### First Deploy
 
 Di VPS:
@@ -222,13 +271,23 @@ git clone https://github.com/USER/REPO.git invoice-doku
 cd invoice-doku
 cp .env.production.example .env.production
 nano .env.production
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+docker login ghcr.io
+docker compose --env-file .env.production -f docker-compose.prod.yml pull
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d
+```
+
+Atau jalankan script di VPS:
+
+```bash
+chmod +x scripts/deploy-vps.sh
+./scripts/deploy-vps.sh
 ```
 
 App container otomatis menjalankan:
 
 ```bash
 npx prisma migrate deploy
+npx prisma generate
 npm run start
 ```
 
@@ -247,6 +306,7 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=replace-with-strong-db-password
 POSTGRES_DB=invoice_doku
 
+APP_IMAGE=ghcr.io/kresnawijayaa/invoice-doku:latest
 NEXT_PUBLIC_APP_URL=https://invoice.domain.com
 AUTH_SECRET=replace-with-random-secret-minimum-32-characters
 
@@ -269,10 +329,28 @@ DOKU_FAILED_REDIRECT_URL=https://invoice.kresnawijaya.web.id/invoice/{token}/fai
 
 Setelah push perubahan ke GitHub:
 
+Di local, build dan push image baru:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.build.yml build
+docker compose --env-file .env.production -f docker-compose.build.yml push
+```
+
+Di VPS, pull dan restart tanpa build:
+
 ```bash
 cd invoice-doku
 git pull
-docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+docker compose --env-file .env.production -f docker-compose.prod.yml pull app
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d
+```
+
+Atau:
+
+```bash
+cd invoice-doku
+git pull
+./scripts/deploy-vps.sh
 ```
 
 ### Logs

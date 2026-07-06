@@ -7,6 +7,8 @@ type ClientFormProps = {
     email: string;
     phone: string | null;
     address: string | null;
+    billingEnabled?: boolean;
+    gracePeriodDays?: number;
   };
   submitLabel: string;
 };
@@ -66,6 +68,31 @@ export function ClientForm({ action, client, submitLabel }: ClientFormProps) {
             defaultValue={client?.address ?? ""}
             placeholder="Alamat penagihan"
           />
+        </label>
+        <label className="block">
+          <span className="text-sm font-medium text-ink">Grace Period Billing</span>
+          <input
+            className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
+            name="gracePeriodDays"
+            type="number"
+            min="0"
+            max="60"
+            step="1"
+            defaultValue={client?.gracePeriodDays ?? 0}
+          />
+          <span className="mt-1 block text-xs text-muted">Jumlah hari setelah due date sebelum akses project dibatasi.</span>
+        </label>
+        <label className="flex items-start gap-3 rounded-md border border-line bg-gray-50 p-3">
+          <input
+            className="mt-1 h-4 w-4"
+            name="billingEnabled"
+            type="checkbox"
+            defaultChecked={client?.billingEnabled ?? true}
+          />
+          <span>
+            <span className="block text-sm font-medium text-ink">Billing access check aktif</span>
+            <span className="mt-1 block text-xs leading-5 text-muted">Project eksternal boleh memakai status billing client ini untuk gating akses.</span>
+          </span>
         </label>
       </div>
       <div className="mt-6 flex justify-end">

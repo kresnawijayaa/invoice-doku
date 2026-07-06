@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "crypto";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -11,8 +12,14 @@ const clientSchema = z.object({
   companyName: z.string().trim().optional(),
   email: z.string().trim().email("Email tidak valid."),
   phone: z.string().trim().optional(),
-  address: z.string().trim().optional()
+  address: z.string().trim().optional(),
+  billingEnabled: z.coerce.boolean().default(true),
+  gracePeriodDays: z.coerce.number().int().min(0).max(60).default(0)
 });
+
+function createBillingToken() {
+  return crypto.randomBytes(24).toString("hex");
+}
 
 function getClientPayload(formData: FormData, errorPath: string) {
   const parsed = clientSchema.safeParse({
@@ -20,7 +27,9 @@ function getClientPayload(formData: FormData, errorPath: string) {
     companyName: formData.get("companyName"),
     email: formData.get("email"),
     phone: formData.get("phone"),
-    address: formData.get("address")
+    address: formData.get("address"),
+    billingEnabled: formData.get("billingEnabled") === "on",
+    gracePeriodDays: formData.get("gracePeriodDays") || 0
   });
 
   if (!parsed.success) {
@@ -33,7 +42,9 @@ function getClientPayload(formData: FormData, errorPath: string) {
     companyName: parsed.data.companyName || null,
     email: parsed.data.email.toLowerCase(),
     phone: parsed.data.phone || null,
-    address: parsed.data.address || null
+    address: parsed.data.address || null,
+    billingEnabled: parsed.data.billingEnabled,
+    gracePeriodDays: parsed.data.gracePeriodDays
   };
 }
 
@@ -41,7 +52,10 @@ export async function createClientAction(formData: FormData) {
   const payload = getClientPayload(formData, "/clients/create");
 
   const client = await prisma.client.create({
-    data: payload,
+    data: {
+      ...payload,
+      billingToken: createBillingToken()
+    },
     select: { id: true }
   });
 
@@ -89,4 +103,24 @@ export async function deleteClientAction(formData: FormData) {
 
   revalidatePath("/clients");
   redirect("/clients?success=deleted");
+}
+
+export async function generateClientBillingTokenAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+
+  if (!id) {
+    redirect("/clients?error=Client tidak ditemukan.");
+  }
+
+  await prisma.client.update({
+    where: { id },
+    data: {
+      billingToken: createBillingToken(),
+      billingEnabled: true
+    }
+  });
+
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${id}`);
+  redirect(`/clients/${id}?success=billing-token`);
 }

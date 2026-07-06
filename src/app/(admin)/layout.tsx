@@ -7,6 +7,7 @@ const navigation = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/clients", label: "Clients" },
   { href: "/invoices", label: "Invoices" },
+  { href: "/recurring", label: "Recurring" },
   { href: "/settings/payment", label: "Payment" },
   { href: "/settings/email", label: "Email" }
 ];

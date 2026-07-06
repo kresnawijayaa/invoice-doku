@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClientForm } from "@/components/client-form";
 import { prisma } from "@/lib/prisma";
-import { deleteClientAction, updateClientAction } from "@/server/client-actions";
+import { deleteClientAction, generateClientBillingTokenAction, updateClientAction } from "@/server/client-actions";
 
 export default async function ClientDetailPage({
   params,
@@ -31,6 +31,10 @@ export default async function ClientDetailPage({
   if (!client) {
     notFound();
   }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const billingUrl = client.billingToken ? `${appUrl}/billing/${client.billingToken}` : null;
+  const billingStatusUrl = client.billingToken ? `${appUrl}/api/public/billing-status?token=${client.billingToken}` : null;
 
   return (
     <main className="px-4 py-5 sm:p-6">
@@ -61,11 +65,64 @@ export default async function ClientDetailPage({
             Client berhasil diperbarui.
           </div>
         ) : null}
+        {query?.success === "billing-token" ? (
+          <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            Billing link client berhasil dibuat.
+          </div>
+        ) : null}
         {query?.error ? (
           <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{query.error}</div>
         ) : null}
 
         <ClientForm action={updateClientAction} client={client} submitLabel="Simpan Perubahan" />
+
+        <div className="mt-6 rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-ink">Billing Portal & Access Check</h2>
+              <p className="mt-1 text-sm leading-6 text-muted">Gunakan endpoint ini dari project LMS untuk mengecek akses client.</p>
+            </div>
+            {!client.billingToken ? (
+              <form action={generateClientBillingTokenAction}>
+                <input name="id" type="hidden" value={client.id} />
+                <button className="h-10 w-full rounded-md bg-ink px-4 text-sm font-medium text-white sm:w-auto" type="submit">
+                  Generate Billing Link
+                </button>
+              </form>
+            ) : null}
+          </div>
+
+          <dl className="space-y-3 text-sm">
+            <div className="flex flex-col gap-1 border-b border-line pb-3 sm:flex-row sm:justify-between">
+              <dt className="text-muted">Access Check</dt>
+              <dd className="font-medium text-ink">{client.billingEnabled ? "Enabled" : "Disabled"}</dd>
+            </div>
+            <div className="flex flex-col gap-1 border-b border-line pb-3 sm:flex-row sm:justify-between">
+              <dt className="text-muted">Grace Period</dt>
+              <dd className="font-medium text-ink">{client.gracePeriodDays} hari</dd>
+            </div>
+            <div className="border-b border-line pb-3">
+              <dt className="text-muted">Billing Portal</dt>
+              {billingUrl ? (
+                <dd className="mt-1 break-all font-medium text-ink">
+                  <Link className="underline-offset-4 hover:underline" href={billingUrl}>
+                    {billingUrl}
+                  </Link>
+                </dd>
+              ) : (
+                <dd className="mt-1 text-muted">Belum dibuat.</dd>
+              )}
+            </div>
+            <div>
+              <dt className="text-muted">Billing Status API</dt>
+              {billingStatusUrl ? (
+                <dd className="mt-1 break-all font-medium text-ink">{billingStatusUrl}</dd>
+              ) : (
+                <dd className="mt-1 text-muted">Belum dibuat.</dd>
+              )}
+            </div>
+          </dl>
+        </div>
 
         <div className="mt-6 rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

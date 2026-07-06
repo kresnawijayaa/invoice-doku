@@ -1,8 +1,6 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${APP_IMAGE:-ghcr.io/kresnawijayaa/invoice-doku:latest}
     container_name: invoice-doku-app
     restart: unless-stopped
     environment:

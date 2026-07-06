@@ -1,0 +1,6 @@
+services:
+  app:
+    image: ${APP_IMAGE:-ghcr.io/kresnawijayaa/invoice-doku:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
