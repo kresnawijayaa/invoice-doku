@@ -46,7 +46,8 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
           companyName: true,
           email: true,
           phone: true,
-          address: true
+          address: true,
+          billingToken: true
         }
       },
       items: {
@@ -189,6 +190,14 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
               >
                 Download PDF
               </Link>
+              {invoice.client.billingToken ? (
+                <Link
+                  className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink"
+                  href={`/billing/${invoice.client.billingToken}`}
+                >
+                  Billing Portal
+                </Link>
+              ) : null}
             </section>
 
             <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
