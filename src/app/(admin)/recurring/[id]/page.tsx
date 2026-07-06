@@ -28,6 +28,8 @@ export default async function RecurringPlanDetailPage({
 
   const subtotal = plan.items.reduce((sum, item) => sum + Number(item.quantity.toString()) * Number(item.unitPrice.toString()), 0);
   const total = subtotal + Number(plan.taxAmount.toString()) - Number(plan.discountAmount.toString());
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const billingUrl = plan.client.billingToken ? `${appUrl}/billing/${plan.client.billingToken}` : null;
 
   return (
     <main className="px-4 py-5 sm:p-6">
@@ -42,9 +44,16 @@ export default async function RecurringPlanDetailPage({
           </div>
           <form action={generateRecurringPlanInvoiceAction}>
             <input name="id" type="hidden" value={plan.id} />
-            <button className="h-11 w-full rounded-md bg-ink px-4 text-sm font-medium text-white sm:w-auto" type="submit">
-              Generate Bulan Ini
-            </button>
+            <div className="grid gap-2 sm:flex">
+              {billingUrl ? (
+                <a className="inline-flex h-11 w-full items-center justify-center rounded-md border border-line bg-white px-4 text-sm font-medium text-ink sm:w-auto" href={billingUrl} rel="noreferrer" target="_blank">
+                  Billing Portal
+                </a>
+              ) : null}
+              <button className="h-11 w-full rounded-md bg-ink px-4 text-sm font-medium text-white sm:w-auto" type="submit">
+                Generate Bulan Ini
+              </button>
+            </div>
           </form>
         </div>
 

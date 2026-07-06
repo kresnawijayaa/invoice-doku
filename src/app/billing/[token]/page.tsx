@@ -162,19 +162,7 @@ export default async function BillingPortalPage({ params }: BillingPortalPagePro
           </div>
         ) : null}
 
-        <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="inline-flex w-full rounded-lg border border-line bg-panel p-1 shadow-sm md:w-auto">
-            <span className="inline-flex h-10 flex-1 items-center justify-center rounded-md bg-gray-100 px-4 text-sm font-semibold text-ink md:flex-none">
-              Billing
-            </span>
-            <span className="inline-flex h-10 flex-1 items-center justify-center rounded-md px-4 text-sm font-medium text-muted md:flex-none">
-              Payment Method
-            </span>
-            <span className="inline-flex h-10 flex-1 items-center justify-center rounded-md px-4 text-sm font-medium text-muted md:flex-none">
-              Transaction History
-            </span>
-          </div>
-
+        <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
           <div
             className={
               billing.action === "BLOCK"

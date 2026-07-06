@@ -146,10 +146,12 @@ export async function generateInvoiceFromRecurringPlan(planId: string, date = ne
   return invoice;
 }
 
-export async function generateAllRecurringInvoices(date = new Date()) {
+export async function generateAllRecurringInvoices(date = new Date(), options: { onlyScheduledToday?: boolean } = {}) {
+  const day = date.getDate();
   const plans = await prisma.recurringInvoicePlan.findMany({
     where: {
-      isActive: true
+      isActive: true,
+      ...(options.onlyScheduledToday ? { issueDay: day } : {})
     },
     select: {
       id: true

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClientForm } from "@/components/client-form";
+import { CopyLinkButton } from "@/components/copy-link-button";
 import { prisma } from "@/lib/prisma";
 import { deleteClientAction, generateClientBillingTokenAction, updateClientAction } from "@/server/client-actions";
 
@@ -104,10 +105,11 @@ export default async function ClientDetailPage({
             <div className="border-b border-line pb-3">
               <dt className="text-muted">Billing Portal</dt>
               {billingUrl ? (
-                <dd className="mt-1 break-all font-medium text-ink">
-                  <Link className="underline-offset-4 hover:underline" href={billingUrl}>
+                <dd className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <a className="break-all font-medium text-ink underline-offset-4 hover:underline" href={billingUrl} rel="noreferrer" target="_blank">
                     {billingUrl}
-                  </Link>
+                  </a>
+                  <CopyLinkButton value={billingUrl} />
                 </dd>
               ) : (
                 <dd className="mt-1 text-muted">Belum dibuat.</dd>
@@ -116,7 +118,12 @@ export default async function ClientDetailPage({
             <div>
               <dt className="text-muted">Billing Status API</dt>
               {billingStatusUrl ? (
-                <dd className="mt-1 break-all font-medium text-ink">{billingStatusUrl}</dd>
+                <dd className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <a className="break-all font-medium text-ink underline-offset-4 hover:underline" href={billingStatusUrl} rel="noreferrer" target="_blank">
+                    {billingStatusUrl}
+                  </a>
+                  <CopyLinkButton value={billingStatusUrl} />
+                </dd>
               ) : (
                 <dd className="mt-1 text-muted">Belum dibuat.</dd>
               )}

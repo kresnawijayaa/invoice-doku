@@ -353,6 +353,38 @@ git pull
 ./scripts/deploy-vps.sh
 ```
 
+### Recurring Invoice Cron
+
+Endpoint internal untuk generate recurring invoice otomatis:
+
+```txt
+POST /api/internal/cron/generate-recurring-invoices
+Authorization: Bearer CRON_SECRET
+```
+
+Endpoint ini hanya generate plan aktif yang `issue_day`-nya sama dengan tanggal hari ini. Duplicate invoice dicegah oleh `last_generated_period`.
+
+Isi `.env.production`:
+
+```env
+CRON_SECRET=replace-with-random-cron-secret
+```
+
+Di VPS, jadwalkan cron harian, misalnya jam 07:00:
+
+```bash
+chmod +x scripts/run-recurring-cron.sh
+crontab -e
+```
+
+Tambahkan:
+
+```cron
+0 7 * * * cd /path/to/invoice-doku && ./scripts/run-recurring-cron.sh >> recurring-cron.log 2>&1
+```
+
+Kalau ada plan dengan `Generate Tanggal = 1`, cron tanggal 1 akan membuat invoice bulan berjalan. Plan dengan tanggal lain akan dilewati sampai tanggalnya sesuai.
+
 ### Logs
 
 ```bash
