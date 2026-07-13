@@ -179,6 +179,34 @@ function toIntegerAmount(value: Prisma.Decimal) {
   return Math.round(Number(value.toString()));
 }
 
+const DOKU_TEXT_DISALLOWED_PATTERN = /[^a-zA-Z0-9 .\-\/+,=_'@%]/g;
+
+function sanitizeDokuText(value: string | null | undefined, fallback: string) {
+  const sanitized = (value ?? "")
+    .replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .replace(DOKU_TEXT_DISALLOWED_PATTERN, "")
+    .trim();
+
+  return sanitized || fallback;
+}
+
+function sanitizeDokuPhone(value: string | null | undefined) {
+  const digits = (value ?? "").replace(/\D/g, "");
+
+  if (!digits) {
+    return undefined;
+  }
+
+  const normalized = digits.startsWith("0") ? `62${digits.slice(1)}` : digits.startsWith("8") ? `62${digits}` : digits;
+
+  if (normalized.length < 8 || normalized.length > 15) {
+    return undefined;
+  }
+
+  return normalized;
+}
+
 function buildCheckoutBody(invoice: DokuInvoice) {
   const callbackSuccess = getRedirectUrl("success", invoice.publicToken);
   const callbackFailed = getRedirectUrl("failed", invoice.publicToken);
@@ -197,7 +225,7 @@ function buildCheckoutBody(invoice: DokuInvoice) {
       disable_retry_payment: false,
       line_items: invoice.items.map((item, index) => ({
         id: String(index + 1).padStart(3, "0"),
-        name: item.description.slice(0, 255),
+        name: sanitizeDokuText(item.description, `Item ${index + 1}`).slice(0, 255),
         quantity: Number(item.quantity.toString()),
         price: toIntegerAmount(item.unitPrice)
       }))
@@ -208,10 +236,10 @@ function buildCheckoutBody(invoice: DokuInvoice) {
     },
     customer: {
       id: invoice.clientId,
-      name: invoice.client.name,
+      name: sanitizeDokuText(invoice.client.name, "Customer"),
       email: invoice.client.email,
-      phone: invoice.client.phone || undefined,
-      address: invoice.client.address || undefined,
+      phone: sanitizeDokuPhone(invoice.client.phone),
+      address: invoice.client.address ? sanitizeDokuText(invoice.client.address, "-") : undefined,
       country: "ID"
     },
     additional_info: notificationUrl
