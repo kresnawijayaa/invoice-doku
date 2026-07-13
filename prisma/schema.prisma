@@ -58,6 +58,7 @@ model Client {
   gracePeriodDays Int       @default(0) @map("grace_period_days")
   invoices        Invoice[]
   recurringPlans  RecurringInvoicePlan[]
+  billingReminderLogs BillingReminderLog[]
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
@@ -168,6 +169,22 @@ model ActivityLog {
   @@index([event])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+model BillingReminderLog {
+  id               String      @id @default(cuid())
+  clientId          String      @map("client_id")
+  client            Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  recipientEmail    String      @map("recipient_email")
+  subject           String
+  status            EmailStatus @default(PENDING)
+  providerResponse  Json?       @map("provider_response")
+  sentAt            DateTime?   @map("sent_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+
+  @@index([clientId])
+  @@index([createdAt])
+  @@map("billing_reminder_logs")
 }
 
 model RecurringInvoicePlan {

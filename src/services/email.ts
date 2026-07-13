@@ -44,6 +44,14 @@ type PaymentReceiptEmailInput = {
   publicUrl: string;
 };
 
+type BillingReminderEmailInput = {
+  recipientEmail: string;
+  clientName: string;
+  companyName: string | null;
+  billingUrl: string;
+  overdueTitles: string[];
+};
+
 function getEmailFrom() {
   const from = process.env.EMAIL_FROM;
 
@@ -293,6 +301,66 @@ function renderReceiptHtmlEmail(input: PaymentReceiptEmailInput) {
   `;
 }
 
+function renderBillingReminderTextEmail(input: BillingReminderEmailInput) {
+  const client = input.companyName || input.clientName;
+  const titles = input.overdueTitles.length > 0 ? input.overdueTitles.map((title) => `- ${title}`) : ["- Tagihan operasional layanan"];
+
+  return [
+    `Terdapat tagihan yang perlu ditinjau untuk ${client}.`,
+    "",
+    "Ringkasan:",
+    ...titles,
+    "",
+    "Silakan buka Billing Portal untuk melihat detail tagihan dan menyelesaikan pembayaran:",
+    input.billingUrl,
+    "",
+    "Setelah pembayaran berhasil, akses layanan akan diperbarui otomatis.",
+    "",
+    "Mohon tidak membalas email otomatis ini."
+  ].join("\n");
+}
+
+function renderBillingReminderHtmlEmail(input: BillingReminderEmailInput) {
+  const client = input.companyName || input.clientName;
+  const titleRows = (input.overdueTitles.length > 0 ? input.overdueTitles : ["Tagihan operasional layanan"])
+    .map(
+      (title) => `
+        <tr>
+          <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;color:#111827;font-weight:600;">${title}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  return `
+    <div style="margin:0;padding:28px;background:#f3f4f6;font-family:Arial,sans-serif;color:#111827;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+        <div style="padding:28px 32px;background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;font-weight:700;">Informasi Billing</div>
+          <div style="margin-top:8px;font-size:24px;line-height:1.2;font-weight:800;color:#111827;">Tinjauan tagihan diperlukan</div>
+          <div style="margin-top:8px;font-size:14px;line-height:1.5;color:#374151;">${client}</div>
+        </div>
+        <div style="padding:28px 32px;">
+          <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#374151;">Terdapat tagihan operasional layanan yang perlu ditinjau. Detail tagihan dan pembayaran dapat dibuka melalui Billing Portal.</p>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;">
+            <thead>
+              <tr>
+                <th style="padding:12px 0;border-bottom:2px solid #111827;text-align:left;color:#111827;">Ringkasan</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${titleRows}
+            </tbody>
+          </table>
+          <a href="${input.billingUrl}" style="display:inline-block;width:100%;box-sizing:border-box;text-align:center;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;padding:14px 16px;font-size:14px;font-weight:700;">Buka Billing Portal</a>
+          <p style="margin:18px 0 0;font-size:13px;color:#6b7280;line-height:1.6;">Jika tombol tidak dapat dibuka, salin link berikut ke browser:<br><span style="word-break:break-all;color:#374151;">${input.billingUrl}</span></p>
+          <p style="margin:22px 0 0;font-size:13px;color:#6b7280;line-height:1.6;">Setelah pembayaran berhasil, akses layanan akan diperbarui otomatis.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 async function sendReceiptWithResend(input: PaymentReceiptEmailInput, subject: string): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
 
@@ -310,6 +378,38 @@ async function sendReceiptWithResend(input: PaymentReceiptEmailInput, subject: s
     subject,
     text: renderReceiptTextEmail(input),
     html: renderReceiptHtmlEmail(input)
+  });
+
+  if (result.error) {
+    throw new Error(result.error.message);
+  }
+
+  return {
+    subject,
+    response: {
+      provider: "resend",
+      id: result.data?.id
+    }
+  };
+}
+
+async function sendBillingReminderWithResend(input: BillingReminderEmailInput, subject: string): Promise<EmailResult> {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY belum dikonfigurasi.");
+  }
+
+  const resend = new Resend(apiKey);
+  const copyRecipients = getEmailCopyRecipients();
+  const result = await resend.emails.send({
+    from: getEmailFrom(),
+    to: input.recipientEmail,
+    cc: copyRecipients.cc,
+    bcc: copyRecipients.bcc,
+    subject,
+    text: renderBillingReminderTextEmail(input),
+    html: renderBillingReminderHtmlEmail(input)
   });
 
   if (result.error) {
@@ -355,6 +455,49 @@ async function sendReceiptWithSmtp(input: PaymentReceiptEmailInput, subject: str
     subject,
     text: renderReceiptTextEmail(input),
     html: renderReceiptHtmlEmail(input)
+  });
+
+  return {
+    subject,
+    response: {
+      provider: "smtp",
+      messageId: result.messageId,
+      accepted: result.accepted.map(String),
+      rejected: result.rejected.map(String)
+    }
+  };
+}
+
+async function sendBillingReminderWithSmtp(input: BillingReminderEmailInput, subject: string): Promise<EmailResult> {
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT ?? "587");
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASSWORD;
+  const secure = process.env.SMTP_SECURE === "true";
+
+  if (!host || !user || !pass) {
+    throw new Error("SMTP_HOST, SMTP_USER, dan SMTP_PASSWORD wajib dikonfigurasi untuk EMAIL_PROVIDER=smtp.");
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: {
+      user,
+      pass
+    }
+  });
+  const copyRecipients = getEmailCopyRecipients();
+
+  const result = await transporter.sendMail({
+    from: getEmailFrom(),
+    to: input.recipientEmail,
+    cc: copyRecipients.cc,
+    bcc: copyRecipients.bcc,
+    subject,
+    text: renderBillingReminderTextEmail(input),
+    html: renderBillingReminderHtmlEmail(input)
   });
 
   return {
@@ -437,6 +580,21 @@ export async function sendPaymentReceiptEmail(input: PaymentReceiptEmailInput): 
 
   if (provider === "resend") {
     return sendReceiptWithResend(input, subject);
+  }
+
+  throw new Error(`EMAIL_PROVIDER tidak dikenal: ${provider}`);
+}
+
+export async function sendBillingReminderEmail(input: BillingReminderEmailInput): Promise<EmailResult> {
+  const subject = `Informasi Billing - ${input.companyName || input.clientName}`;
+  const provider = process.env.EMAIL_PROVIDER ?? "resend";
+
+  if (provider === "smtp") {
+    return sendBillingReminderWithSmtp(input, subject);
+  }
+
+  if (provider === "resend") {
+    return sendBillingReminderWithResend(input, subject);
   }
 
   throw new Error(`EMAIL_PROVIDER tidak dikenal: ${provider}`);

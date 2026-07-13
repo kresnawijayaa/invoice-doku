@@ -74,6 +74,7 @@ export async function getClientBillingByToken(token: string) {
     action,
     status,
     billingUrl: `${appUrl}/billing/${token}`,
+    blockedUrl: `${appUrl}/billing/${token}/blocked`,
     openInvoices,
     overdueInvoices,
     warningInvoices,
@@ -95,6 +96,7 @@ export function toBillingStatusResponse(data: NonNullable<Awaited<ReturnType<typ
       gracePeriodDays: data.client.gracePeriodDays
     },
     billingUrl: data.billingUrl,
+    blockedUrl: data.blockedUrl,
     warning: data.nearestDueInvoice
       ? {
           invoiceNumber: data.nearestDueInvoice.invoiceNumber,
