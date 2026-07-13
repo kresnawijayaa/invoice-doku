@@ -140,7 +140,7 @@ export default async function InvoicesPage({
           <div className="divide-y divide-line md:hidden">
             {invoices.length > 0 ? (
               invoices.map((invoice) => (
-                <Link key={invoice.id} className="block p-4 hover:bg-gray-50" href={`/invoices/${invoice.id}`}>
+                <div key={invoice.id} className="block p-4 hover:bg-gray-50">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="break-words font-medium text-ink">{invoice.invoiceNumber}</p>
@@ -153,7 +153,15 @@ export default async function InvoicesPage({
                     <span className="text-muted">Due {formatDate(invoice.dueDate)}</span>
                     <span className="font-medium text-ink">{formatCurrency(invoice.totalAmount.toString())}</span>
                   </div>
-                </Link>
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <Link className="inline-flex h-9 items-center justify-center rounded-md border border-line bg-white px-3 text-sm font-medium text-ink" href={`/invoices/${invoice.id}`}>
+                      Detail
+                    </Link>
+                    <Link className="inline-flex h-9 items-center justify-center rounded-md border border-line bg-white px-3 text-sm font-medium text-ink" href={`/invoices/create?duplicate=${invoice.id}`}>
+                      Duplikat
+                    </Link>
+                  </div>
+                </div>
               ))
             ) : (
               <p className="px-4 py-10 text-center text-sm text-muted">Tidak ada invoice yang cocok.</p>
@@ -187,6 +195,9 @@ export default async function InvoicesPage({
                     <td className="px-4 py-4 text-right">
                       <Link className="font-medium text-ink underline-offset-4 hover:underline" href={`/invoices/${invoice.id}`}>
                         Detail
+                      </Link>
+                      <Link className="ml-4 font-medium text-muted underline-offset-4 hover:text-ink hover:underline" href={`/invoices/create?duplicate=${invoice.id}`}>
+                        Duplikat
                       </Link>
                     </td>
                   </tr>

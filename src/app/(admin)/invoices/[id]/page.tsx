@@ -55,6 +55,9 @@ export default async function InvoiceDetailPage({
             <p className="mt-2 text-sm text-muted">{invoice.title}</p>
           </div>
           <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2 lg:flex lg:flex-wrap">
+            <Link className="inline-flex h-10 items-center justify-center rounded-md border border-line bg-white px-3 text-sm font-medium text-ink" href={`/invoices/create?duplicate=${invoice.id}`}>
+              Duplikat
+            </Link>
             {invoice.status !== "PAID" ? (
               <Link className="inline-flex h-10 items-center justify-center rounded-md border border-line bg-white px-3 text-sm font-medium text-ink" href={`/invoices/${invoice.id}/edit`}>
                 Edit Invoice
