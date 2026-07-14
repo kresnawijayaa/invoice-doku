@@ -50,6 +50,9 @@ type BillingReminderEmailInput = {
   companyName: string | null;
   billingUrl: string;
   overdueTitles: string[];
+  senderName?: string;
+  senderRole?: string;
+  sourceUrl?: string;
 };
 
 function getEmailFrom() {
@@ -304,10 +307,16 @@ function renderReceiptHtmlEmail(input: PaymentReceiptEmailInput) {
 function renderBillingReminderTextEmail(input: BillingReminderEmailInput) {
   const client = input.companyName || input.clientName;
   const titles = input.overdueTitles.length > 0 ? input.overdueTitles.map((title) => `- ${title}`) : ["- Tagihan operasional layanan"];
+  const senderLine = [input.senderName, input.senderRole].filter(Boolean).join(" - ");
+  const contextLines = [
+    senderLine ? `Dikirim oleh: ${senderLine}` : null,
+    input.sourceUrl ? `Sumber akses: ${input.sourceUrl}` : null
+  ].filter(Boolean);
 
   return [
     `Terdapat tagihan yang perlu ditinjau untuk ${client}.`,
     "",
+    ...(contextLines.length > 0 ? ["Informasi ini dikirim melalui halaman akses terbatas.", ...contextLines, ""] : []),
     "Ringkasan:",
     ...titles,
     "",
@@ -322,6 +331,25 @@ function renderBillingReminderTextEmail(input: BillingReminderEmailInput) {
 
 function renderBillingReminderHtmlEmail(input: BillingReminderEmailInput) {
   const client = input.companyName || input.clientName;
+  const senderLine = [input.senderName, input.senderRole].filter(Boolean).join(" - ");
+  const contextRows = [
+    senderLine
+      ? `
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Dikirim oleh</td>
+          <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;color:#111827;font-weight:700;">${senderLine}</td>
+        </tr>
+      `
+      : "",
+    input.sourceUrl
+      ? `
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;color:#6b7280;">Sumber akses</td>
+          <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right;color:#111827;font-weight:700;word-break:break-all;">${input.sourceUrl}</td>
+        </tr>
+      `
+      : ""
+  ].join("");
   const titleRows = (input.overdueTitles.length > 0 ? input.overdueTitles : ["Tagihan operasional layanan"])
     .map(
       (title) => `
@@ -342,6 +370,17 @@ function renderBillingReminderHtmlEmail(input: BillingReminderEmailInput) {
         </div>
         <div style="padding:28px 32px;">
           <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#374151;">Terdapat tagihan operasional layanan yang perlu ditinjau. Detail tagihan dan pembayaran dapat dibuka melalui Billing Portal.</p>
+          ${
+            contextRows
+              ? `
+                <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;">
+                  <tbody>
+                    ${contextRows}
+                  </tbody>
+                </table>
+              `
+              : ""
+          }
           <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;">
             <thead>
               <tr>

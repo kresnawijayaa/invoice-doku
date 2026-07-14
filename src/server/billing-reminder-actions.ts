@@ -62,8 +62,68 @@ function buildRedirect(token: string, status: "sent" | "limited" | "error", mess
   return `/billing/${token}/blocked?${params.toString()}`;
 }
 
+function sanitizeTextParam(value: FormDataEntryValue | null, maxLength: number) {
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function sanitizeUrlParam(value: FormDataEntryValue | null) {
+  const rawValue = String(value ?? "").trim();
+
+  if (!rawValue) {
+    return "";
+  }
+
+  try {
+    const url = new URL(rawValue);
+
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return "";
+    }
+
+    return url.toString().slice(0, 300);
+  } catch {
+    return "";
+  }
+}
+
+function buildContextRedirect(token: string, status: "sent" | "limited" | "error", context: ReminderContext, message?: string) {
+  const params = new URLSearchParams({ status });
+
+  if (message) {
+    params.set("message", message);
+  }
+
+  if (context.senderName) {
+    params.set("senderName", context.senderName);
+  }
+
+  if (context.senderRole) {
+    params.set("senderRole", context.senderRole);
+  }
+
+  if (context.sourceUrl) {
+    params.set("sourceUrl", context.sourceUrl);
+  }
+
+  return `/billing/${token}/blocked?${params.toString()}`;
+}
+
+type ReminderContext = {
+  senderName: string;
+  senderRole: string;
+  sourceUrl: string;
+};
+
 export async function sendBillingReminderAction(formData: FormData) {
   const token = String(formData.get("token") ?? "");
+  const context = {
+    senderName: sanitizeTextParam(formData.get("senderName"), 80),
+    senderRole: sanitizeTextParam(formData.get("senderRole"), 80),
+    sourceUrl: sanitizeUrlParam(formData.get("sourceUrl"))
+  };
 
   if (!token) {
     redirect("/billing?error=Token billing tidak valid.");
@@ -78,7 +138,7 @@ export async function sendBillingReminderAction(formData: FormData) {
   const limit = await getBillingReminderLimit(billing.client.id);
 
   if (!limit.canSend) {
-    redirect(buildRedirect(token, "limited"));
+    redirect(buildContextRedirect(token, "limited", context));
   }
 
   const billingUrl = billing.billingUrl;
@@ -91,7 +151,10 @@ export async function sendBillingReminderAction(formData: FormData) {
       clientName: billing.client.name,
       companyName: billing.client.companyName,
       billingUrl,
-      overdueTitles
+      overdueTitles,
+      senderName: context.senderName,
+      senderRole: context.senderRole,
+      sourceUrl: context.sourceUrl
     });
 
     await prisma.billingReminderLog.create({
@@ -100,7 +163,10 @@ export async function sendBillingReminderAction(formData: FormData) {
         recipientEmail: billing.client.email,
         subject: result.subject,
         status: "SENT",
-        providerResponse: result.response,
+        providerResponse: {
+          result: result.response,
+          reminderContext: context
+        },
         sentAt: new Date()
       }
     });
@@ -114,15 +180,16 @@ export async function sendBillingReminderAction(formData: FormData) {
         subject,
         status: "FAILED",
         providerResponse: {
-          error: message
+          error: message,
+          reminderContext: context
         } satisfies Prisma.InputJsonObject
       }
     });
 
     revalidatePath(`/billing/${token}/blocked`);
-    redirect(buildRedirect(token, "error", message));
+    redirect(buildContextRedirect(token, "error", context, message));
   }
 
   revalidatePath(`/billing/${token}/blocked`);
-  redirect(buildRedirect(token, "sent"));
+  redirect(buildContextRedirect(token, "sent", context));
 }

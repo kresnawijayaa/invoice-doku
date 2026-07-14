@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { PasswordInput } from "@/components/password-input";
 import { getSession } from "@/lib/auth";
 import { loginAction } from "@/server/auth-actions";
 
@@ -43,14 +44,7 @@ export default async function LoginPage({
           </label>
           <label className="block">
             <span className="text-sm font-medium text-ink">Password</span>
-            <input
-              name="password"
-              className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
-              type="password"
-              placeholder="Password admin"
-              autoComplete="current-password"
-              required
-            />
+            <PasswordInput />
           </label>
           <button className="h-11 w-full rounded-md bg-ink text-sm font-medium text-white" type="submit">
             Masuk

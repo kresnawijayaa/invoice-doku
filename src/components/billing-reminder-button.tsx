@@ -8,6 +8,9 @@ type BillingReminderButtonProps = {
   canSend: boolean;
   nextAllowedAt: string | null;
   remainingToday: number;
+  senderName?: string;
+  senderRole?: string;
+  sourceUrl?: string;
 };
 
 function formatRemaining(ms: number) {
@@ -18,7 +21,16 @@ function formatRemaining(ms: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-export function BillingReminderButton({ token, action, canSend, nextAllowedAt, remainingToday }: BillingReminderButtonProps) {
+export function BillingReminderButton({
+  token,
+  action,
+  canSend,
+  nextAllowedAt,
+  remainingToday,
+  senderName,
+  senderRole,
+  sourceUrl
+}: BillingReminderButtonProps) {
   const nextAllowedTime = useMemo(() => (nextAllowedAt ? new Date(nextAllowedAt).getTime() : null), [nextAllowedAt]);
   const [now, setNow] = useState(Date.now());
 
@@ -45,6 +57,9 @@ export function BillingReminderButton({ token, action, canSend, nextAllowedAt, r
   return (
     <form action={action}>
       <input name="token" type="hidden" value={token} />
+      {senderName ? <input name="senderName" type="hidden" value={senderName} /> : null}
+      {senderRole ? <input name="senderRole" type="hidden" value={senderRole} /> : null}
+      {sourceUrl ? <input name="sourceUrl" type="hidden" value={sourceUrl} /> : null}
       <button
         className="h-11 w-full rounded-md bg-ink px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-600"
         disabled={isDisabled}

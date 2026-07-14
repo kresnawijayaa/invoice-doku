@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BillingReminderButton } from "@/components/billing-reminder-button";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTimeWib } from "@/lib/format";
 import { getClientBillingByToken } from "@/services/billing";
 import { getBillingReminderLimit, sendBillingReminderAction } from "@/server/billing-reminder-actions";
 
 type BlockedBillingPageProps = {
   params: Promise<{ token: string }>;
-  searchParams?: Promise<{ status?: string; message?: string }>;
+  searchParams?: Promise<{ message?: string; senderName?: string; senderRole?: string; sourceUrl?: string; status?: string }>;
 };
 
 function maskEmail(value: string) {
@@ -21,6 +21,28 @@ function maskEmail(value: string) {
   const visible = name.slice(0, Math.min(2, name.length));
 
   return `${visible}${"*".repeat(Math.max(3, name.length - visible.length))}@${domain}`;
+}
+
+function sanitizeTextParam(value: string | undefined, maxLength: number) {
+  return value?.replace(/\s+/g, " ").trim().slice(0, maxLength) || "";
+}
+
+function sanitizeUrlParam(value: string | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const url = new URL(value);
+
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return "";
+    }
+
+    return url.toString().slice(0, 300);
+  } catch {
+    return "";
+  }
 }
 
 export async function generateMetadata({ params }: BlockedBillingPageProps): Promise<Metadata> {
@@ -48,6 +70,10 @@ export default async function BlockedBillingPage({ params, searchParams }: Block
   const clientName = billing.client.companyName || billing.client.name;
   const serviceTitle = billing.overdueInvoices[0]?.title || billing.warningInvoices[0]?.title || "Tagihan operasional layanan";
   const maskedEmail = maskEmail(billing.client.email);
+  const senderName = sanitizeTextParam(query?.senderName, 80);
+  const senderRole = sanitizeTextParam(query?.senderRole, 80);
+  const sourceUrl = sanitizeUrlParam(query?.sourceUrl);
+  const hasSenderContext = Boolean(senderName || senderRole || sourceUrl);
 
   return (
     <main className="min-h-screen bg-gray-100">
@@ -106,17 +132,42 @@ export default async function BlockedBillingPage({ params, searchParams }: Block
               </p>
             </div>
 
+            {hasSenderContext ? (
+              <section className="rounded-lg border border-line bg-gray-50 p-4 text-sm">
+                <p className="font-medium text-ink">Konteks pengiriman</p>
+                <dl className="mt-3 space-y-2">
+                  {senderName || senderRole ? (
+                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                      <dt className="text-muted">Dikirim oleh</dt>
+                      <dd className="font-medium text-ink">
+                        {[senderName, senderRole].filter(Boolean).join(" - ")}
+                      </dd>
+                    </div>
+                  ) : null}
+                  {sourceUrl ? (
+                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                      <dt className="text-muted">Sumber</dt>
+                      <dd className="break-all font-medium text-ink">{sourceUrl}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </section>
+            ) : null}
+
             <div className="rounded-lg border border-line bg-gray-50 p-4">
               <BillingReminderButton
                 action={sendBillingReminderAction}
                 canSend={limit.canSend}
                 nextAllowedAt={limit.nextAllowedAt?.toISOString() ?? null}
                 remainingToday={limit.remainingToday}
+                senderName={senderName}
+                senderRole={senderRole}
+                sourceUrl={sourceUrl}
                 token={token}
               />
               <p className="mt-3 text-xs leading-5 text-muted">
                 Sisa pengiriman hari ini: {limit.remainingToday} dari {limit.maxPerDay}.
-                {limit.nextAllowedAt ? ` Dapat dikirim lagi setelah ${formatDateTime(limit.nextAllowedAt)}.` : ""}
+                {limit.nextAllowedAt ? ` Dapat dikirim lagi setelah ${formatDateTimeWib(limit.nextAllowedAt)}.` : ""}
               </p>
             </div>
 

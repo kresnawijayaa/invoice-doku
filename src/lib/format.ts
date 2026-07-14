@@ -16,3 +16,18 @@ export function formatDate(value: Date) {
 export function formatDateTime(value: Date) {
   return format(value, "d MMMM yyyy HH:mm", { locale: id });
 }
+
+export function formatDateTimeWib(value: Date) {
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Jakarta",
+    timeZoneName: "short"
+  })
+    .format(value)
+    .replace("pukul ", "");
+}
