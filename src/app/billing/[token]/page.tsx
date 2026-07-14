@@ -43,7 +43,41 @@ function BillingTable({
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-panel shadow-sm">
-      <div className="overflow-x-auto">
+      <div className="divide-y divide-line md:hidden">
+        {invoices.map((invoice) => (
+          <article key={invoice.id} className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Link className="break-words font-semibold text-emerald-700 underline-offset-4 hover:underline" href={`/invoice/${invoice.publicToken}`}>
+                  {invoice.invoiceNumber}
+                </Link>
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{invoice.title}</p>
+              </div>
+              <StatusBadge status={invoice.status === "SENT" ? "UNPAID" : invoice.status} />
+            </div>
+
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-md bg-gray-50 px-3 py-2">
+                <dt className="text-xs font-medium uppercase text-muted">Total</dt>
+                <dd className="mt-1 font-semibold text-ink">{formatCurrency(invoice.totalAmount.toString())}</dd>
+              </div>
+              <div className="rounded-md bg-gray-50 px-3 py-2">
+                <dt className="text-xs font-medium uppercase text-muted">Due Date</dt>
+                <dd className="mt-1 font-semibold text-ink">{formatDate(invoice.dueDate)}</dd>
+              </div>
+            </dl>
+
+            <Link
+              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink"
+              href={`/invoice/${invoice.publicToken}`}
+            >
+              {invoice.status === "PAID" ? "Lihat Detail" : "Bayar Sekarang"}
+            </Link>
+          </article>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[820px] border-collapse text-left text-sm">
           <thead className="bg-gray-50 text-xs uppercase text-muted">
             <tr>
@@ -186,7 +220,7 @@ export default async function BillingPortalPage({ params }: BillingPortalPagePro
               <h2 className="text-xl font-semibold text-ink">Billing</h2>
               <p className="mt-1 text-sm text-muted">Daftar invoice dan status pembayaran.</p>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="hidden flex-col gap-3 sm:flex-row sm:items-center md:flex">
               <div className="relative">
                 <input
                   className="h-11 w-full rounded-md border border-line bg-white px-3 pr-10 text-sm text-muted outline-none sm:w-80"
