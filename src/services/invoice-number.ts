@@ -29,13 +29,22 @@ export async function generateInvoiceNumber(clientId: string, issueDate: Date) {
   const year = issueDate.getFullYear();
   const month = String(issueDate.getMonth() + 1).padStart(2, "0");
   const prefix = `INV-${code}-${year}-${month}`;
-  const count = await prisma.invoice.count({
-    where: {
-      invoiceNumber: {
-        startsWith: prefix
+
+  const counter = await prisma.invoiceNumberCounter.upsert({
+    where: { prefix },
+    create: {
+      prefix,
+      lastNumber: 1
+    },
+    update: {
+      lastNumber: {
+        increment: 1
       }
+    },
+    select: {
+      lastNumber: true
     }
   });
 
-  return `${prefix}-${String(count + 1).padStart(3, "0")}`;
+  return `${prefix}-${String(counter.lastNumber).padStart(3, "0")}`;
 }

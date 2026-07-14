@@ -155,6 +155,16 @@ model AppSetting {
   @@map("app_settings")
 }
 
+model InvoiceNumberCounter {
+  id        String   @id @default(cuid())
+  prefix    String   @unique
+  lastNumber Int     @default(0) @map("last_number")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("invoice_number_counters")
+}
+
 model ActivityLog {
   id        String   @id @default(cuid())
   invoiceId String?  @map("invoice_id")
