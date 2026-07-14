@@ -73,7 +73,6 @@ export default async function BlockedBillingPage({ params, searchParams }: Block
   const senderName = sanitizeTextParam(query?.senderName, 80);
   const senderRole = sanitizeTextParam(query?.senderRole, 80);
   const sourceUrl = sanitizeUrlParam(query?.sourceUrl);
-  const hasSenderContext = Boolean(senderName || senderRole || sourceUrl);
 
   return (
     <main className="min-h-screen bg-gray-100">
@@ -131,28 +130,6 @@ export default async function BlockedBillingPage({ params, searchParams }: Block
                 Gunakan tombol di bawah untuk mengirimkan informasi billing ke <span className="font-semibold text-ink">{maskedEmail}</span>.
               </p>
             </div>
-
-            {hasSenderContext ? (
-              <section className="rounded-lg border border-line bg-gray-50 p-4 text-sm">
-                <p className="font-medium text-ink">Konteks pengiriman</p>
-                <dl className="mt-3 space-y-2">
-                  {senderName || senderRole ? (
-                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
-                      <dt className="text-muted">Dikirim oleh</dt>
-                      <dd className="font-medium text-ink">
-                        {[senderName, senderRole].filter(Boolean).join(" - ")}
-                      </dd>
-                    </div>
-                  ) : null}
-                  {sourceUrl ? (
-                    <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
-                      <dt className="text-muted">Sumber</dt>
-                      <dd className="break-all font-medium text-ink">{sourceUrl}</dd>
-                    </div>
-                  ) : null}
-                </dl>
-              </section>
-            ) : null}
 
             <div className="rounded-lg border border-line bg-gray-50 p-4">
               <BillingReminderButton
