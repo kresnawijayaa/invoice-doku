@@ -4,7 +4,7 @@ services:
     container_name: invoice-doku-app
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-invoice_doku}?schema=public
+      DATABASE_URL: ${DATABASE_URL}
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
