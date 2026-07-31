@@ -27,6 +27,13 @@ type MidtransSnapResponse = {
   error_messages?: string[];
 };
 
+export class MidtransPaymentNotFoundError extends Error {
+  constructor(public readonly orderId: string) {
+    super(`Payment Midtrans ${orderId} tidak ditemukan.`);
+    this.name = "MidtransPaymentNotFoundError";
+  }
+}
+
 function toJson(value: unknown) {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
@@ -254,7 +261,7 @@ async function applyMidtransUpdate(payload: MidtransNotification) {
   });
 
   if (!payment) {
-    throw new Error(`Payment Midtrans ${orderId} tidak ditemukan.`);
+    throw new MidtransPaymentNotFoundError(orderId);
   }
 
   const callbackAmount = Number(payload.gross_amount);
