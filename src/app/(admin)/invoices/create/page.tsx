@@ -37,6 +37,7 @@ export default async function CreateInvoicePage({
         issueDate: sourceInvoice.issueDate,
         dueDate: sourceInvoice.dueDate,
         notes: sourceInvoice.notes,
+        paymentProvider: sourceInvoice.paymentProvider,
         taxAmount: sourceInvoice.taxAmount.toString(),
         discountAmount: sourceInvoice.discountAmount.toString(),
         items: sourceInvoice.items.map((item) => ({

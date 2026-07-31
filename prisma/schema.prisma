@@ -28,6 +28,11 @@ enum PaymentStatus {
   CANCELLED
 }
 
+enum PaymentProvider {
+  DOKU
+  MIDTRANS
+}
+
 enum EmailStatus {
   PENDING
   SENT
@@ -79,15 +84,16 @@ model Invoice {
   discountAmount Decimal       @default(0) @map("discount_amount") @db.Decimal(14, 2)
   totalAmount    Decimal       @default(0) @map("total_amount") @db.Decimal(14, 2)
   status         InvoiceStatus @default(DRAFT)
-  publicToken    String        @unique @map("public_token")
-  sentAt         DateTime?     @map("sent_at")
-  paidAt         DateTime?     @map("paid_at")
-  items          InvoiceItem[]
-  payments       Payment[]
-  emailLogs      EmailLog[]
-  activityLogs   ActivityLog[]
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
+  paymentProvider PaymentProvider @default(DOKU) @map("payment_provider")
+  publicToken     String          @unique @map("public_token")
+  sentAt          DateTime?       @map("sent_at")
+  paidAt          DateTime?       @map("paid_at")
+  items           InvoiceItem[]
+  payments        Payment[]
+  emailLogs       EmailLog[]
+  activityLogs    ActivityLog[]
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
 
   @@index([clientId])
   @@index([status])
@@ -208,6 +214,7 @@ model RecurringInvoicePlan {
   dueDay              Int                    @default(10) @map("due_day")
   taxAmount           Decimal                @default(0) @map("tax_amount") @db.Decimal(14, 2)
   discountAmount      Decimal                @default(0) @map("discount_amount") @db.Decimal(14, 2)
+  paymentProvider     PaymentProvider        @default(DOKU) @map("payment_provider")
   isActive            Boolean                @default(true) @map("is_active")
   lastGeneratedPeriod String?                @map("last_generated_period")
   items               RecurringInvoiceItem[]

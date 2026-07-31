@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/status-badge";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { deleteInvoiceAction, sendInvoiceAction, syncDokuPaymentStatusAction, updateInvoiceStatusAction } from "@/server/invoice-actions";
+import { deleteInvoiceAction, sendInvoiceAction, syncPaymentStatusAction, updateInvoiceStatusAction } from "@/server/invoice-actions";
 
 export default async function InvoiceDetailPage({
   params,
@@ -69,10 +69,10 @@ export default async function InvoiceDetailPage({
                 Send Invoice
               </button>
             </form>
-            <form action={syncDokuPaymentStatusAction}>
+            <form action={syncPaymentStatusAction}>
               <input name="id" type="hidden" value={invoice.id} />
               <button className="h-10 w-full rounded-md border border-line bg-white px-3 text-sm font-medium text-ink" type="submit">
-                Sync DOKU
+                Sync {invoice.paymentProvider === "MIDTRANS" ? "Midtrans" : "DOKU"}
               </button>
             </form>
             <form action={updateInvoiceStatusAction} className="grid grid-cols-[1fr_auto] gap-2 sm:col-span-2 lg:col-span-1">
@@ -114,7 +114,7 @@ export default async function InvoiceDetailPage({
         ) : null}
         {query?.success === "payment-sync" ? (
           <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            Status pembayaran DOKU berhasil disinkronkan.
+            Status pembayaran {invoice.paymentProvider === "MIDTRANS" ? "Midtrans" : "DOKU"} berhasil disinkronkan.
           </div>
         ) : null}
         {query?.success === "updated" ? (
@@ -139,6 +139,7 @@ export default async function InvoiceDetailPage({
                 <p className="text-xs font-medium uppercase text-muted">Tanggal</p>
                 <p className="mt-1 text-sm text-ink">Issue: {formatDate(invoice.issueDate)}</p>
                 <p className="text-sm text-ink">Due: {formatDate(invoice.dueDate)}</p>
+                <p className="mt-1 text-sm text-muted">Gateway: {invoice.paymentProvider === "MIDTRANS" ? "Midtrans" : "DOKU"}</p>
               </div>
             </div>
 

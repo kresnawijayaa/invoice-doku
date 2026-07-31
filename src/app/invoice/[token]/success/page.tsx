@@ -17,7 +17,8 @@ export default async function InvoiceSuccessPage({
       title: true,
       status: true,
       totalAmount: true,
-      paidAt: true
+      paidAt: true,
+      paymentProvider: true
     }
   });
 
@@ -60,7 +61,7 @@ export default async function InvoiceSuccessPage({
         <p className="mt-5 text-center text-sm leading-6 text-muted">
           {isPaid
             ? "Status invoice sudah diperbarui menjadi PAID."
-            : "Kami sudah menerima redirect dari DOKU. Jika status belum PAID, sistem akan memperbarui setelah callback DOKU diterima."}
+            : `Kami sudah menerima redirect dari ${invoice.paymentProvider === "MIDTRANS" ? "Midtrans" : "DOKU"}. Jika status belum PAID, sistem akan memperbarui setelah callback payment gateway diterima.`}
         </p>
         <Link className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-md bg-ink px-4 text-sm font-medium text-white" href={`/invoice/${token}`}>
           Lihat Invoice

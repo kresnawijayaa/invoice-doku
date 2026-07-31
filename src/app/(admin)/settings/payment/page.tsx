@@ -17,8 +17,10 @@ function ConfigStatus({ label, configured }: { label: string; configured: boolea
 
 export default function PaymentSettingsPage() {
   const dokuEnv = process.env.DOKU_ENV ?? "sandbox";
+  const midtransEnv = process.env.MIDTRANS_ENV ?? "sandbox";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const callbackUrl = process.env.DOKU_CALLBACK_URL || `${appUrl}/api/webhooks/doku`;
+  const midtransNotificationUrl = process.env.MIDTRANS_NOTIFICATION_URL || `${appUrl}/api/webhooks/midtrans`;
 
   return (
     <main className="px-4 py-5 sm:p-6">
@@ -26,7 +28,7 @@ export default function PaymentSettingsPage() {
         <div>
           <p className="text-sm font-medium text-muted">Settings</p>
           <h1 className="text-2xl font-semibold text-ink">Payment</h1>
-          <p className="mt-2 text-sm leading-6 text-muted">Status konfigurasi DOKU. Secret tidak ditampilkan di dashboard.</p>
+          <p className="mt-2 text-sm leading-6 text-muted">Status konfigurasi payment gateway. Secret tidak ditampilkan di dashboard.</p>
         </div>
 
         <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
@@ -38,6 +40,25 @@ export default function PaymentSettingsPage() {
             <ConfigStatus label="DOKU_SUCCESS_REDIRECT_URL" configured={Boolean(process.env.DOKU_SUCCESS_REDIRECT_URL)} />
             <ConfigStatus label="DOKU_FAILED_REDIRECT_URL" configured={Boolean(process.env.DOKU_FAILED_REDIRECT_URL)} />
           </div>
+        </section>
+
+        <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
+          <h2 className="text-base font-semibold text-ink">Midtrans</h2>
+          <div className="mt-4">
+            <ConfigStatus label="MIDTRANS_MERCHANT_ID" configured={Boolean(process.env.MIDTRANS_MERCHANT_ID)} />
+            <ConfigStatus label="MIDTRANS_CLIENT_KEY" configured={Boolean(process.env.MIDTRANS_CLIENT_KEY)} />
+            <ConfigStatus label="MIDTRANS_SERVER_KEY" configured={Boolean(process.env.MIDTRANS_SERVER_KEY)} />
+          </div>
+          <dl className="mt-4 space-y-3 border-t border-line pt-4 text-sm">
+            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+              <dt className="text-muted">Environment</dt>
+              <dd className="font-medium text-ink">{midtransEnv}</dd>
+            </div>
+            <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+              <dt className="text-muted">Notification URL</dt>
+              <dd className="break-all font-medium text-ink">{midtransNotificationUrl}</dd>
+            </div>
+          </dl>
         </section>
 
         <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">

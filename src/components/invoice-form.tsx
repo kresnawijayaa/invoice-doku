@@ -17,6 +17,7 @@ type InvoiceFormProps = {
     issueDate: Date;
     dueDate: Date;
     notes: string | null;
+    paymentProvider: "DOKU" | "MIDTRANS";
     taxAmount: string;
     discountAmount: string;
     items: Array<{
@@ -133,7 +134,19 @@ export function InvoiceForm({ action, clients, invoice, submitLabel = "Simpan In
               required
             />
           </label>
-          <label className="block md:col-span-2">
+          <label className="block">
+            <span className="text-sm font-medium text-ink">Payment Gateway</span>
+            <select
+              className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
+              name="paymentProvider"
+              defaultValue={invoice?.paymentProvider ?? "DOKU"}
+              required
+            >
+              <option value="DOKU">DOKU</option>
+              <option value="MIDTRANS">Midtrans</option>
+            </select>
+          </label>
+          <label className="block">
             <span className="text-sm font-medium text-ink">Judul Invoice</span>
             <input
               className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"

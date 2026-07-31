@@ -108,6 +108,10 @@ export default async function RecurringPlanDetailPage({
                 <dd className="font-medium text-ink">Tanggal {plan.dueDay}</dd>
               </div>
               <div className="flex justify-between gap-3">
+                <dt className="text-muted">Gateway</dt>
+                <dd className="font-medium text-ink">{plan.paymentProvider === "MIDTRANS" ? "Midtrans" : "DOKU"}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
                 <dt className="text-muted">Last Period</dt>
                 <dd className="font-medium text-ink">{plan.lastGeneratedPeriod || "-"}</dd>
               </div>

@@ -46,6 +46,7 @@ export default async function EditInvoicePage({
     issueDate: invoice.issueDate,
     dueDate: invoice.dueDate,
     notes: invoice.notes,
+    paymentProvider: invoice.paymentProvider,
     taxAmount: invoice.taxAmount.toString(),
     discountAmount: invoice.discountAmount.toString(),
     items: invoice.items.map((item) => ({

@@ -105,6 +105,7 @@ export async function generateInvoiceFromRecurringPlan(planId: string, date = ne
         discountAmount,
         totalAmount,
         status: "UNPAID",
+        paymentProvider: plan.paymentProvider,
         publicToken,
         items: {
           create: items.map((item) => ({

@@ -86,6 +86,18 @@ export function RecurringPlanForm({ action, clients }: RecurringPlanFormProps) {
             <span className="text-sm font-medium text-ink">Nama Plan</span>
             <input className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink" name="name" defaultValue="Operasional LMS Bulanan" required />
           </label>
+          <label className="block">
+            <span className="text-sm font-medium text-ink">Payment Gateway</span>
+            <select
+              className="mt-2 h-10 w-full rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-ink"
+              name="paymentProvider"
+              defaultValue="DOKU"
+              required
+            >
+              <option value="DOKU">DOKU</option>
+              <option value="MIDTRANS">Midtrans</option>
+            </select>
+          </label>
           <label className="block md:col-span-2">
             <span className="text-sm font-medium text-ink">Template Judul Invoice</span>
             <input

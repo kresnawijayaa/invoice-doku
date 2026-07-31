@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { createDokuPayment } from "@/services/doku";
+import { createInvoicePayment } from "@/services/payment";
 
 export default async function PayInvoicePage({
   params
@@ -18,6 +18,7 @@ export default async function PayInvoicePage({
       title: true,
       status: true,
       totalAmount: true,
+      paymentProvider: true,
       client: {
         select: {
           name: true,
@@ -39,9 +40,9 @@ export default async function PayInvoicePage({
   let errorMessage: string | null = null;
 
   try {
-    paymentUrl = await createDokuPayment(invoice.id);
+    paymentUrl = await createInvoicePayment(invoice.id);
   } catch (error) {
-    errorMessage = error instanceof Error ? error.message : "Gagal membuat pembayaran DOKU.";
+    errorMessage = error instanceof Error ? error.message : "Gagal membuat pembayaran.";
   }
 
   if (paymentUrl) {
@@ -52,9 +53,9 @@ export default async function PayInvoicePage({
     <main className="flex min-h-screen items-center justify-center bg-gray-100 px-3 py-6 sm:px-4 sm:py-8">
       <section className="w-full max-w-lg rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
         <p className="break-words text-sm font-medium text-muted">{invoice.invoiceNumber}</p>
-        <h1 className="mt-2 text-2xl font-semibold text-ink">Pembayaran DOKU</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-ink">Pembayaran {invoice.paymentProvider === "MIDTRANS" ? "Midtrans" : "DOKU"}</h1>
         <p className="mt-3 text-sm leading-6 text-muted">
-          Sistem belum bisa mengarahkan ke DOKU karena request pembayaran gagal dibuat.
+          Sistem belum bisa mengarahkan ke payment gateway karena request pembayaran gagal dibuat.
         </p>
 
         <div className="mt-6 rounded-md bg-gray-50 p-4">

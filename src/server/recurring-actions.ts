@@ -15,7 +15,8 @@ const recurringPlanSchema = z.object({
   dueDay: z.coerce.number().int().min(1).max(28).default(10),
   taxAmount: z.coerce.number().min(0).default(0),
   discountAmount: z.coerce.number().min(0).default(0),
-  notes: z.string().trim().optional()
+  notes: z.string().trim().optional(),
+  paymentProvider: z.enum(["DOKU", "MIDTRANS"]).default("DOKU")
 });
 
 function parsePlanItems(formData: FormData, errorPath: string) {
@@ -52,7 +53,8 @@ export async function createRecurringPlanAction(formData: FormData) {
     dueDay: formData.get("dueDay"),
     taxAmount: formData.get("taxAmount") || 0,
     discountAmount: formData.get("discountAmount") || 0,
-    notes: formData.get("notes")
+    notes: formData.get("notes"),
+    paymentProvider: formData.get("paymentProvider")
   });
 
   if (!parsed.success) {
@@ -71,6 +73,7 @@ export async function createRecurringPlanAction(formData: FormData) {
       taxAmount: parsed.data.taxAmount,
       discountAmount: parsed.data.discountAmount,
       notes: parsed.data.notes || null,
+      paymentProvider: parsed.data.paymentProvider,
       isActive: true,
       items: {
         create: items.map((item) => ({

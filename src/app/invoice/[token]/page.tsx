@@ -203,7 +203,7 @@ export default async function PublicInvoicePage({ params }: PublicInvoicePagePro
             <section className="rounded-lg border border-line bg-panel p-4 shadow-sm sm:p-6">
               <h2 className="text-base font-semibold text-ink">Informasi Pembayaran</h2>
               <p className="mt-2 text-sm leading-6 text-muted">
-                Pembayaran diproses melalui DOKU. Setelah pembayaran berhasil, status invoice akan diperbarui otomatis.
+                Pembayaran diproses melalui {invoice.paymentProvider === "MIDTRANS" ? "Midtrans" : "DOKU"}. Setelah pembayaran berhasil, status invoice akan diperbarui otomatis.
               </p>
             </section>
           </aside>

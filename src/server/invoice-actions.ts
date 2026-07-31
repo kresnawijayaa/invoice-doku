@@ -10,6 +10,7 @@ import { createActivityLog } from "@/services/activity-log";
 import { syncDokuPaymentStatus } from "@/services/doku";
 import { sendInvoiceEmail } from "@/services/email";
 import { generateInvoiceNumber } from "@/services/invoice-number";
+import { syncMidtransPaymentStatus } from "@/services/midtrans";
 
 const invoiceSchema = z.object({
   clientId: z.string().min(1, "Client wajib dipilih."),
@@ -17,6 +18,7 @@ const invoiceSchema = z.object({
   issueDate: z.string().min(1, "Issue date wajib diisi."),
   dueDate: z.string().min(1, "Due date wajib diisi."),
   notes: z.string().trim().optional(),
+  paymentProvider: z.enum(["DOKU", "MIDTRANS"]).default("DOKU"),
   taxAmount: z.coerce.number().min(0).default(0),
   discountAmount: z.coerce.number().min(0).default(0)
 });
@@ -59,6 +61,7 @@ export async function createInvoiceAction(formData: FormData) {
     issueDate: formData.get("issueDate"),
     dueDate: formData.get("dueDate"),
     notes: formData.get("notes"),
+    paymentProvider: formData.get("paymentProvider"),
     taxAmount: formData.get("taxAmount") || 0,
     discountAmount: formData.get("discountAmount") || 0
   });
@@ -87,6 +90,7 @@ export async function createInvoiceAction(formData: FormData) {
       clientId: parsed.data.clientId,
       title: parsed.data.title,
       notes: parsed.data.notes || null,
+      paymentProvider: parsed.data.paymentProvider,
       issueDate,
       dueDate,
       subtotal,
@@ -134,7 +138,11 @@ export async function updateInvoiceAction(formData: FormData) {
     where: { id },
     select: {
       id: true,
-      status: true
+      status: true,
+      paymentProvider: true,
+      _count: {
+        select: { payments: true }
+      }
     }
   });
 
@@ -152,6 +160,7 @@ export async function updateInvoiceAction(formData: FormData) {
     issueDate: formData.get("issueDate"),
     dueDate: formData.get("dueDate"),
     notes: formData.get("notes"),
+    paymentProvider: formData.get("paymentProvider"),
     taxAmount: formData.get("taxAmount") || 0,
     discountAmount: formData.get("discountAmount") || 0
   });
@@ -159,6 +168,17 @@ export async function updateInvoiceAction(formData: FormData) {
   if (!parsed.success) {
     const message = parsed.error.issues[0]?.message ?? "Input invoice tidak valid.";
     redirect(`${errorPath}?error=${encodeURIComponent(message)}`);
+  }
+
+  if (
+    existingInvoice._count.payments > 0 &&
+    parsed.data.paymentProvider !== existingInvoice.paymentProvider
+  ) {
+    redirect(
+      `${errorPath}?error=${encodeURIComponent(
+        "Payment gateway tidak dapat diubah setelah payment request pernah dibuat."
+      )}`
+    );
   }
 
   const items = parseItems(formData, errorPath);
@@ -182,6 +202,7 @@ export async function updateInvoiceAction(formData: FormData) {
         clientId: parsed.data.clientId,
         title: parsed.data.title,
         notes: parsed.data.notes || null,
+        paymentProvider: parsed.data.paymentProvider,
         issueDate,
         dueDate,
         subtotal,
@@ -378,7 +399,7 @@ export async function sendInvoiceAction(formData: FormData) {
   redirect(`/invoices/${invoice.id}?success=email`);
 }
 
-export async function syncDokuPaymentStatusAction(formData: FormData) {
+export async function syncPaymentStatusAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
 
   if (!id) {
@@ -386,17 +407,32 @@ export async function syncDokuPaymentStatusAction(formData: FormData) {
   }
 
   try {
-    const result = await syncDokuPaymentStatus(id);
+    const invoice = await prisma.invoice.findUnique({
+      where: { id },
+      select: { paymentProvider: true }
+    });
+
+    if (!invoice) {
+      throw new Error("Invoice tidak ditemukan.");
+    }
+
+    const result =
+      invoice.paymentProvider === "MIDTRANS"
+        ? await syncMidtransPaymentStatus(id)
+        : await syncDokuPaymentStatus(id);
 
     await createActivityLog({
       invoiceId: id,
       actor: "admin",
       event: "payment.sync",
-      message: `Status DOKU disinkronkan: ${result.paymentStatus}.`,
-      metadata: result
+      message: `Status ${invoice.paymentProvider} disinkronkan: ${result.paymentStatus}.`,
+      metadata: {
+        provider: invoice.paymentProvider,
+        ...result
+      }
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Gagal sync status pembayaran DOKU.";
+    const message = error instanceof Error ? error.message : "Gagal sync status pembayaran.";
 
     revalidatePath(`/invoices/${id}`);
     redirect(`/invoices/${id}?error=${encodeURIComponent(message)}`);
